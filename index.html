@@ -1,51 +1,47 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Virus vs Vaccine Duel</title>
-  <style>
-    body{font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 12px}
-    .card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:12px 0}
-    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    button,input{padding:10px 12px;font-size:16px}
-    pre{background:#f4f4f4;padding:12px;border-radius:10px;overflow:auto}
-    .ok{color:green} .bad{color:#b00}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Virus vs Vaccine Duel</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 12px}
+.card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:12px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,input{padding:10px 12px;font-size:16px}
+pre{background:#f4f4f4;padding:12px;border-radius:10px;overflow:auto}
+</style>
 </head>
 <body>
-  <h1>Virus vs Vaccine Duel</h1>
 
-  <div class="card">
-    <div class="row">
-      <button id="create">방 만들기</button>
-      <input id="code" placeholder="방 코드 입력" />
-      <button id="join">방 참가</button>
-    </div>
-    <p id="info">대기중…</p>
-  </div>
+<h1>Virus vs Vaccine Duel</h1>
 
-  <div class="card">
-    <div class="row">
-      <button id="virus">바이러스 선택</button>
-      <button id="vaccine">백신 선택</button>
-      <button id="end">턴 종료(테스트)</button>
-    </div>
+<div class="card">
+  <div class="row">
+    <button id="create">방 만들기</button>
+    <input id="code" placeholder="방 코드 입력" />
+    <button id="join">방 참가</button>
   </div>
+  <p id="info">대기중…</p>
+</div>
 
-  <div class="card">
-    <h3>실시간 상태</h3>
-    <pre id="state"></pre>
-    <p id="hint"></p>
+<div class="card">
+  <div class="row">
+    <button id="virus">바이러스 선택</button>
+    <button id="vaccine">백신 선택</button>
   </div>
+</div>
+
+<pre id="state"></pre>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import {
-    getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, doc, setDoc, getDoc, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const firebaseConfig = {
+/* 🔴 여기 firebaseConfig를 네 것로 교체 */
+const firebaseConfig = {
   apiKey: "AIzaSyBIZll4u_E6zHKyoJZqjCI6_P9cxhK1Shs",
   authDomain: "yanngok-9323a.firebaseapp.com",
   projectId: "yanngok-9323a",
@@ -55,84 +51,49 @@
   measurementId: "G-M51E2S8PQF"
 };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  const $ = (id)=>document.getElementById(id);
-  const me = crypto.randomUUID();
-  let roomCode = null;
-  let unsub = null;
+const me = crypto.randomUUID();
+let room = null;
 
-  function makeCode(){
-    const chars="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-    let s=""; for(let i=0;i<6;i++) s+=chars[Math.floor(Math.random()*chars.length)];
-    return s;
-  }
+const $ = id => document.getElementById(id);
 
-  function listen(){
-    if (!roomCode) return;
-    if (unsub) unsub();
-    unsub = onSnapshot(doc(db,"rooms",roomCode), (snap)=>{
-      if(!snap.exists()){
-        $("info").innerHTML = `<span class="bad">방이 없어요. 코드 확인!</span>`;
-        $("state").textContent = "";
-        return;
-      }
-      const data = snap.data();
-      $("info").innerHTML = `<span class="ok">연결됨</span> 방: <b>${roomCode}</b> / 상태: <b>${data.status}</b>`;
-      $("state").textContent = JSON.stringify(data, null, 2);
-      $("hint").textContent = "다른 기기에서 같은 주소 접속 → 방 코드 입력하면 같이 보임";
-    }, (err)=>{
-      $("info").innerHTML = `<span class="bad">에러:</span> ${err.message}`;
-    });
-  }
+function listen() {
+  onSnapshot(doc(db,"rooms",room), snap=>{
+    $("state").textContent = JSON.stringify(snap.data(),null,2);
+  });
+}
 
-  async function ensureRoom(){
-    if(!roomCode) throw new Error("방 코드가 없어요");
-    const ref = doc(db,"rooms",roomCode);
-    const snap = await getDoc(ref);
-    if(!snap.exists()) throw new Error("방이 없어요");
-    return {ref, data: snap.data()};
-  }
+$("create").onclick = async ()=>{
+  room = Math.random().toString(36).slice(2,8).toUpperCase();
+  await setDoc(doc(db,"rooms",room),{
+    turn:1,
+    players:{}
+  });
+  $("info").textContent = "방: "+room;
+  listen();
+};
 
-  $("create").onclick = async ()=>{
-    roomCode = makeCode();
-    await setDoc(doc(db,"rooms",roomCode), {
-      status: "lobby",
-      turn: 1,
-      active: 0,
-      players: {},
-      createdAt: serverTimestamp()
-    });
-    $("code").value = roomCode;
-    listen();
-  };
+$("join").onclick = ()=>{
+  room = $("code").value.toUpperCase();
+  $("info").textContent = "방: "+room;
+  listen();
+};
 
-  $("join").onclick = ()=>{
-    roomCode = $("code").value.trim().toUpperCase();
-    listen();
-  };
+$("virus").onclick = async ()=>{
+  const ref = doc(db,"rooms",room);
+  const d = (await getDoc(ref)).data();
+  d.players[me]={faction:"virus",hp:100};
+  await setDoc(ref,d);
+};
 
-  async function chooseFaction(faction){
-    const {ref, data} = await ensureRoom();
-    data.players = data.players || {};
-    data.players[me] = data.players[me] || { hp:100, mana:0 };
-    data.players[me].faction = faction;
-
-    if (Object.keys(data.players).length >= 2) data.status = "playing";
-    await setDoc(ref, data);
-  }
-
-  $("virus").onclick = ()=>chooseFaction("virus");
-  $("vaccine").onclick = ()=>chooseFaction("vaccine");
-
-  $("end").onclick = async ()=>{
-    const {ref, data} = await ensureRoom();
-    data.turn = (data.turn || 1) + 1;
-    await setDoc(ref, data);
-  };
-
-  $("info").textContent = "방 만들기/참가를 눌러 연결 테스트";
+$("vaccine").onclick = async ()=>{
+  const ref = doc(db,"rooms",room);
+  const d = (await getDoc(ref)).data();
+  d.players[me]={faction:"vaccine",hp:100};
+  await setDoc(ref,d);
+};
 </script>
 </body>
 </html>
