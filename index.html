@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Virus vs Vaccine Duel (Demo)</title>
+  <style>
+    body{font-family:system-ui, sans-serif; max-width:720px; margin:24px auto; padding:0 12px;}
+    .card{border:1px solid #ddd; border-radius:12px; padding:12px; margin:12px 0;}
+    button,input{padding:10px 12px; font-size:16px;}
+    pre{background:#f4f4f4; padding:10px; border-radius:10px; overflow:auto;}
+    .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  </style>
+</head>
+<body>
+  <h1>Virus vs Vaccine Duel</h1>
+  <div class="card">
+    <div class="row">
+      <button id="create">방 만들기</button>
+      <input id="code" placeholder="방 코드 입력(예: ABC123)" />
+      <button id="join">방 참가</button>
+    </div>
+    <p id="info">아직 연결 전</p>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="virus">바이러스 선택</button>
+      <button id="vaccine">백신 선택</button>
+      <button id="end">턴 종료(임시)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>상태(로컬 데모)</h3>
+    <pre id="state"></pre>
+    <p style="color:#666">※ 이 페이지는 “접속 테스트용” 로컬 데모야. 다음 단계에서 실시간(2인)으로 바꿀 거야.</p>
+  </div>
+
+<script>
+  // ✅ GitHub Pages로 "접속되는지" 확인하기 위한 로컬 데모(서버/파이어베이스 없음)
+  let room = null;
+  let me = { faction:null, hp:100, mana:0 };
+  let turn = 1;
+
+  const $ = (id)=>document.getElementById(id);
+  const render = ()=>{
+    $("info").textContent = room ? `방: ${room} / 턴:${turn} / 진영:${me.faction||"-"}` : "아직 방 없음";
+    $("state").textContent = JSON.stringify({room, turn, me}, null, 2);
+  };
+  const makeCode = ()=>Math.random().toString(36).slice(2,8).toUpperCase();
+
+  $("create").onclick = ()=>{ room = makeCode(); render(); };
+  $("join").onclick = ()=>{ room = $("code").value.trim().toUpperCase(); render(); };
+  $("virus").onclick = ()=>{ me.faction="virus"; render(); };
+  $("vaccine").onclick = ()=>{ me.faction="vaccine"; render(); };
+  $("end").onclick = ()=>{ turn++; me.mana += 3; render(); };
+
+  render();
+</script>
+</body>
+</html>
