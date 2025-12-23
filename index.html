@@ -1,34 +1,125 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Firebase 연결 테스트</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Virus vs Vaccine Duel</title>
 <style>
-  body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto}
-  button,input{padding:10px;font-size:16px}
-  pre{background:#f6f6f6;padding:12px;border-radius:8px}
+  body{font-family:system-ui,sans-serif;max-width:980px;margin:20px auto;padding:0 12px}
+  h2{margin:0 0 10px}
+  .card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:10px 0}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button,select,input{padding:10px 12px;font-size:15px}
+  pre{background:#f6f6f6;padding:10px;border-radius:10px;overflow:auto;max-height:360px}
+  .muted{color:#666}
+  .ok{color:#0a7}
+  .bad{color:#b00}
+  .pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#eee}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  .hide{display:none}
 </style>
 </head>
 <body>
 
-<h2>Firebase 연결 테스트</h2>
+<h2>Virus vs Vaccine Duel</h2>
 
-<button id="create">방 만들기</button>
-<input id="code" placeholder="방 코드">
-<button id="join">방 참가</button>
+<!-- ✅ LOBBY VIEW -->
+<div id="viewLobby" class="card">
+  <div class="row">
+    <button id="create">방 만들기</button>
+    <input id="code" placeholder="방 코드 입력" />
+    <button id="join">방 참가</button>
+    <span id="conn" class="pill muted">미연결</span>
+    <span id="info" class="muted"></span>
+    <span id="meTag" class="pill mono muted"></span>
+  </div>
 
-<p id="info">상태: 대기</p>
-<pre id="state"></pre>
+  <div class="row" style="margin-top:10px">
+    <span class="pill">진영 선택</span>
+    <button id="virus">바이러스 선택</button>
+    <button id="vaccine">백신 선택</button>
+
+    <!-- ✅ 호스트 전용 시작 버튼 -->
+    <button id="start" class="hide">게임 시작(호스트)</button>
+
+    <span id="lobbyStatus" class="muted"></span>
+  </div>
+
+  <p class="muted" style="margin:10px 0 0">
+    • 방 만든 사람(호스트)만 ‘게임 시작’ 버튼이 보여요.<br>
+    • 2명 모두 진영을 선택해야 시작 버튼이 작동해요.
+  </p>
+</div>
+
+<!-- ✅ GAME VIEW -->
+<div id="viewGame" class="hide">
+  <div class="card">
+    <div class="row">
+      <span id="gameStatus" class="pill"></span>
+      <button id="end">턴 종료</button>
+      <span id="msg" class="muted"></span>
+    </div>
+    <p class="muted" style="margin:8px 0 0">
+      턴 시작: 마나 +3 / 턴당 카드 사용 2회 / 공격 2회(서로 다른 몬스터)<br>
+      플레이어 피감 = (내 필드 몬스터 수×20%) + (백신이면 +20%), 최대 80%<br>
+      표식(2턴): 바이러스 몬스터가 플레이어 공격 성공 시 대상에게 부여, 받는 피해 +15%<br>
+      몬스터 사망 시 해당 칸은 “대상 플레이어의 다음 턴 시작까지” 잠김
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <span class="pill">상점(턴당 1회)</span>
+      <select id="tier">
+        <option value="low">하급(2)</option>
+        <option value="mid">중급(5)</option>
+        <option value="high">상급(9)</option>
+      </select>
+      <button id="buy">구매</button>
+
+      <span class="pill">소환</span>
+      <select id="handSel" style="min-width:320px"></select>
+      <select id="mySlot">
+        <option value="0">내 0칸</option><option value="1">내 1칸</option>
+        <option value="2">내 2칸</option><option value="3">내 3칸</option>
+      </select>
+      <button id="play">소환(행동 -1)</button>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <span class="pill">공격</span>
+      <select id="atkFrom">
+        <option value="0">내 0칸</option><option value="1">내 1칸</option>
+        <option value="2">내 2칸</option><option value="3">내 3칸</option>
+      </select>
+      <select id="atkTo" style="min-width:240px"></select>
+      <button id="attack">공격</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 6px">패</h3>
+    <pre id="handView"></pre>
+  </div>
+</div>
+
+<!-- ✅ END VIEW -->
+<div id="viewEnd" class="card hide">
+  <h3 style="margin:0 0 6px">게임 종료</h3>
+  <p id="endText" class="muted"></p>
+  <button id="restart">새로고침(다시하기)</button>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 6px">실시간 상태(디버그)</h3>
+  <pre id="state"></pre>
+</div>
 
 <script type="module">
-/* 🔹 Firebase SDK */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ✅ 네가 준 Firebase 설정 (정상) */
+/* ✅ Firebase 설정 */
 const firebaseConfig = {
   apiKey: "AIzaSyBIZll4u_E6zHKyoJZqjCI6_P9cxhK1Shs",
   authDomain: "yanngok-9323a.firebaseapp.com",
@@ -39,49 +130,430 @@ const firebaseConfig = {
   measurementId: "G-M51E2S8PQF"
 };
 
-/* 🔹 초기화 */
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* 🔹 유틸 */
-const $ = (id) => document.getElementById(id);
-const rid = () => Math.random().toString(36).slice(2,8).toUpperCase();
+const $ = (id)=>document.getElementById(id);
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const rid=()=>Math.random().toString(36).slice(2,8).toUpperCase();
+const uid=()=>Math.random().toString(36).slice(2,10);
 
-let room = null;
-let unsub = null;
+let room=null;
+let unsub=null;
 
-/* 🔹 실시간 리스너 */
-function listen() {
-  if (!room) return;
-  if (unsub) unsub();
+function show(id,on){ $(id).classList.toggle("hide", !on); }
 
-  unsub = onSnapshot(doc(db,"rooms",room),(snap)=>{
-    if (!snap.exists()) {
-      $("state").textContent = "방 없음";
+function getPid(r){
+  const k="vvd_pid_"+r;
+  let v=localStorage.getItem(k);
+  if(!v){ v=crypto.randomUUID(); localStorage.setItem(k,v); }
+  return v;
+}
+let me=null;
+
+/* ===== 카드 풀(원하는 대로 수정 가능) ===== */
+const COST={low:2,mid:5,high:9};
+const POOL={
+  virus:{
+    low:[
+      {id:"vL1",name:"침투 포자",tier:"low",atk:7,hp:16,mark:false},
+      {id:"vL2",name:"복제 세포",tier:"low",atk:6,hp:18,mark:false},
+      {id:"vL3",name:"점액 분열체",tier:"low",atk:8,hp:14,mark:true},
+    ],
+    mid:[
+      {id:"vM1",name:"감염 확산체",tier:"mid",atk:9,hp:24,mark:true},
+      {id:"vM2",name:"변이 돌격체",tier:"mid",atk:11,hp:20,mark:false},
+      {id:"vM3",name:"은폐 잠복체",tier:"mid",atk:8,hp:28,mark:true},
+    ],
+    high:[
+      {id:"vH1",name:"숙주 지배체",tier:"high",atk:13,hp:38,mark:true},
+      {id:"vH2",name:"신경 오염체",tier:"high",atk:15,hp:32,mark:true},
+      {id:"vH3",name:"재앙 군체핵",tier:"high",atk:12,hp:44,mark:false},
+    ],
+  },
+  vaccine:{
+    low:[
+      {id:"cL1",name:"주사병",tier:"low",atk:6,hp:18},
+      {id:"cL2",name:"소독 요원",tier:"low",atk:7,hp:16},
+      {id:"cL3",name:"방역 드론",tier:"low",atk:5,hp:20},
+    ],
+    mid:[
+      {id:"cM1",name:"항체 방패병",tier:"mid",atk:8,hp:28},
+      {id:"cM2",name:"면역 수호자",tier:"mid",atk:10,hp:24},
+      {id:"cM3",name:"정화 공병",tier:"mid",atk:9,hp:26},
+    ],
+    high:[
+      {id:"cH1",name:"면역 사령관",tier:"high",atk:12,hp:44},
+      {id:"cH2",name:"백신 배양체",tier:"high",atk:11,hp:48},
+      {id:"cH3",name:"항원 제압기",tier:"high",atk:14,hp:40},
+    ],
+  }
+};
+
+/* ===== helpers ===== */
+async function loadRoom(){
+  if(!room) throw new Error("방 코드 없음");
+  const ref=doc(db,"rooms",room);
+  const snap=await getDoc(ref);
+  if(!snap.exists()) throw new Error("방 없음");
+  return {ref,data:snap.data()};
+}
+const pids=(data)=>Object.keys(data.players||{});
+const otherPid=(data)=>pids(data).find(pid=>pid!==me)||null;
+const myData=(data)=>data.players?.[me]||null;
+const opData=(data)=>{const op=otherPid(data); return op?data.players[op]:null;};
+const countAlive=(field)=>(field||[]).filter(m=>m && m.alive!==false).length;
+
+function playerDR(data,pid){
+  const p=data.players?.[pid];
+  if(!p) return 0;
+  const base=0.2*countAlive(p.field);
+  const bonus=(p.faction==="vaccine")?0.2:0;
+  return clamp(base+bonus,0,0.8);
+}
+const markBonus=(target)=>((target?.debuffs?.markTurns||0)>0?0.15:0);
+const canAct=(data)=>data.status==="playing" && data.turnOwner===me;
+
+function setMsg(t,bad=false){
+  $("msg").textContent=t;
+  $("msg").className=bad?"bad":"muted";
+}
+
+function ensureTurnStart(data){
+  data.turnState=data.turnState||{};
+  const k=`${data.turn}-${data.turnOwner}`;
+  if(data.turnState.startedKey===k) return;
+
+  const p=data.players?.[data.turnOwner];
+  if(p){
+    p.mana=(p.mana||0)+3;
+    data.actionLeft=2;
+    data.attackedThisTurn=[];
+    p.debuffs=p.debuffs||{};
+    if(p.debuffs.markTurns) p.debuffs.markTurns=Math.max(0,p.debuffs.markTurns-1);
+
+    data.lock=data.lock||{};
+    for(let s=0;s<4;s++){
+      const lk=`${data.turnOwner}-${s}`;
+      if(data.lock[lk] && data.lock[lk]>0) data.lock[lk]-=1;
+      if(data.lock[lk]===0) delete data.lock[lk];
+    }
+  }
+  data.turnState.startedKey=k;
+}
+
+function render(data){
+  $("state").textContent = JSON.stringify(data,null,2);
+
+  show("viewLobby", data.status==="lobby");
+  show("viewGame", data.status==="playing");
+  show("viewEnd", data.status==="end");
+
+  const my=myData(data);
+  const op=opData(data);
+
+  const ps=pids(data);
+  const picked = ps.filter(pid => !!data.players?.[pid]?.faction).length;
+
+  const isHost = (data.host === me);
+  show("start", data.status==="lobby" && isHost); // ✅ 호스트만 시작 버튼 표시
+
+  $("lobbyStatus").textContent =
+    `참가:${ps.length}/2, 진영선택:${picked}/2` +
+    (isHost ? " (호스트)" : "");
+
+  if(data.status==="playing"){
+    $("gameStatus").textContent =
+      `턴:${data.turn} / 턴주인:${data.turnOwner===me?"나":"상대"} / 행동:${data.actionLeft} / 내마나:${my?.mana ?? 0} / 내HP:${my?.hp ?? 0}`;
+  }
+
+  // 패/선택
+  const handSel=$("handSel");
+  handSel.innerHTML="";
+  (my?.hand||[]).forEach((c,i)=>{
+    const o=document.createElement("option");
+    o.value=String(i);
+    o.textContent=`[${i}] ${c.name} (${c.tier} ${c.atk}/${c.hp}${c.mark?" 표식":""})`;
+    handSel.appendChild(o);
+  });
+  $("handView").textContent = JSON.stringify(my?.hand||[],null,2);
+
+  // 공격 대상
+  const atkTo=$("atkTo");
+  atkTo.innerHTML="";
+  const optP=document.createElement("option");
+  optP.value="P";
+  optP.textContent="상대 플레이어";
+  atkTo.appendChild(optP);
+  if(op){
+    for(let i=0;i<4;i++){
+      const m=op.field?.[i];
+      const o=document.createElement("option");
+      o.value="S"+i;
+      o.textContent=`상대 ${i}칸 (${m?`${m.name} ${m.atk}/${m.hp}`:"빈칸"})`;
+      atkTo.appendChild(o);
+    }
+  }
+
+  const enabled = canAct(data) && !!my;
+  ["buy","play","attack","end"].forEach(id=>$(id).disabled = !enabled);
+
+  if(data.status==="end"){
+    const w=data.winner;
+    $("endText").textContent =
+      (w==="draw") ? "무승부!" :
+      (w===me) ? "내가 승리!" :
+      "패배...";
+  }
+}
+
+function listen(){
+  if(!room) return;
+  if(unsub) unsub();
+
+  unsub = onSnapshot(doc(db,"rooms",room), async (snap)=>{
+    if(!snap.exists()){
+      $("conn").textContent="방 없음";
+      $("conn").className="pill bad";
       return;
     }
-    $("state").textContent = JSON.stringify(snap.data(),null,2);
+    const {ref,data}=await loadRoom();
+
+    if(data.status==="playing"){
+      ensureTurnStart(data);
+      await setDoc(ref,data);
+    }
+
+    $("conn").textContent="연결됨";
+    $("conn").className="pill ok";
+    render(data);
+  },(err)=>{
+    $("conn").textContent="에러";
+    $("conn").className="pill bad";
+    $("state").textContent=err.message;
   });
 }
 
-/* 🔹 방 만들기 */
-$("create").onclick = async () => {
-  room = rid();
+/* ===== 방 생성/참가 ===== */
+$("create").onclick=async ()=>{
+  room=rid();
+  me=getPid(room);
+  $("meTag").textContent = "me:" + me.slice(0,8);
+
   await setDoc(doc(db,"rooms",room),{
-    createdAt: serverTimestamp(),
-    test: "Firebase 연결 성공"
+    host: me,                 // ✅ 호스트 저장
+    status:"lobby",
+    turn:1,
+    turnOwner:null,
+    actionLeft:2,
+    attackedThisTurn:[],
+    players:{},
+    lock:{},
+    turnState:{},
+    turnBuy:{},
+    createdAt:serverTimestamp()
   });
-  $("code").value = room;
-  $("info").textContent = "방 생성: " + room;
+
+  $("code").value=room;
+  $("info").textContent="방: "+room;
   listen();
 };
 
-/* 🔹 방 참가 */
-$("join").onclick = () => {
-  room = $("code").value.trim().toUpperCase();
-  $("info").textContent = "방 참가: " + room;
+$("join").onclick=()=>{
+  room=$("code").value.trim().toUpperCase();
+  if(!room) return;
+  me=getPid(room);
+  $("meTag").textContent = "me:" + me.slice(0,8);
+  $("info").textContent="방: "+room;
   listen();
 };
+
+/* ===== 진영 선택(자동 시작 없음) ===== */
+async function chooseFaction(faction){
+  const {ref,data}=await loadRoom();
+  data.players=data.players||{};
+  data.players[me]={
+    faction,
+    hp:100,
+    mana:0,
+    field:[null,null,null,null],
+    hand:[],
+    debuffs:{markTurns:0}
+  };
+  await setDoc(ref,data);
+  setMsg(`${faction} 선택`);
+}
+$("virus").onclick=()=>chooseFaction("virus");
+$("vaccine").onclick=()=>chooseFaction("vaccine");
+
+/* ===== 호스트 시작 버튼 ===== */
+$("start").onclick = async ()=>{
+  const {ref, data} = await loadRoom();
+
+  if (data.host !== me) return setMsg("호스트만 시작 가능", true);
+  if (data.status !== "lobby") return setMsg("이미 시작됨", true);
+
+  const ps = pids(data);
+  if (ps.length !== 2) return setMsg("플레이어 2명이 필요", true);
+
+  const picked = ps.filter(pid => !!data.players?.[pid]?.faction).length;
+  if (picked !== 2) return setMsg("둘 다 진영 선택해야 시작됨", true);
+
+  data.status = "playing";
+  data.turnOwner = ps[Math.floor(Math.random()*2)];
+  ensureTurnStart(data);
+
+  await setDoc(ref, data);
+  setMsg("게임 시작!");
+};
+
+/* ===== 게임 액션 ===== */
+$("buy").onclick=async ()=>{
+  const {ref,data}=await loadRoom();
+  if(!canAct(data)) return setMsg("내 턴 아님",true);
+
+  const my=myData(data);
+  if(!my) return setMsg("진영 선택 먼저",true);
+
+  data.turnBuy=data.turnBuy||{};
+  const key=`${data.turn}-${me}`;
+  if(data.turnBuy[key]) return setMsg("이번 턴 이미 구매함",true);
+
+  const tier=$("tier").value;
+  const cost=COST[tier];
+  if((my.mana||0)<cost) return setMsg("마나 부족",true);
+
+  const pool=POOL[my.faction][tier];
+  const card={...pool[Math.floor(Math.random()*pool.length)]};
+  card.cost=cost; card.instId=uid();
+
+  my.mana-=cost;
+  my.hand.push(card);
+  if(my.hand.length>10) my.hand=my.hand.slice(-10);
+
+  data.players[me]=my;
+  data.turnBuy[key]=true;
+
+  await setDoc(ref,data);
+  setMsg(`구매: ${card.name}`);
+};
+
+$("play").onclick=async ()=>{
+  const {ref,data}=await loadRoom();
+  if(!canAct(data)) return setMsg("내 턴 아님",true);
+
+  const my=myData(data);
+  if(!my) return setMsg("진영 선택 먼저",true);
+
+  if((data.actionLeft??0)<=0) return setMsg("이번 턴 카드 2장 사용 완료",true);
+
+  const idx=Number($("handSel").value);
+  if(Number.isNaN(idx)) return setMsg("패 선택",true);
+
+  const slot=Number($("mySlot").value);
+  if(my.field[slot]) return setMsg("이미 몬스터 있음",true);
+
+  data.lock=data.lock||{};
+  if(data.lock[`${me}-${slot}`]) return setMsg("그 칸은 잠김",true);
+
+  const card=my.hand[idx];
+  if(!card) return setMsg("패 오류",true);
+
+  my.field[slot]={instId:uid(),id:card.id,name:card.name,tier:card.tier,atk:card.atk,hp:card.hp,alive:true,mark:!!card.mark};
+  my.hand.splice(idx,1);
+
+  data.players[me]=my;
+  data.actionLeft-=1;
+
+  await setDoc(ref,data);
+  setMsg(`소환: ${slot}칸`);
+};
+
+$("attack").onclick=async ()=>{
+  const {ref,data}=await loadRoom();
+  if(!canAct(data)) return setMsg("내 턴 아님",true);
+
+  const my=myData(data);
+  const opPid=otherPid(data);
+  const op=opPid?data.players[opPid]:null;
+  if(!my||!op) return setMsg("상대 필요",true);
+
+  data.attackedThisTurn=data.attackedThisTurn||[];
+  if(data.attackedThisTurn.length>=2) return setMsg("이번 턴 공격 2회 끝",true);
+
+  const from=Number($("atkFrom").value);
+  const a=my.field[from];
+  if(!a) return setMsg("공격자 없음",true);
+  if(data.attackedThisTurn.includes(a.instId)) return setMsg("중복 공격 불가",true);
+
+  const to=$("atkTo").value;
+
+  if(to==="P"){
+    const dr=playerDR(data,opPid);
+    const bonus=(my.faction==="virus" && a.mark)?markBonus(op):0;
+    const dmg=Math.max(1, Math.floor(a.atk*(1+bonus)*(1-dr)));
+    op.hp-=dmg;
+
+    if(my.faction==="virus" && a.mark){
+      op.debuffs=op.debuffs||{};
+      op.debuffs.markTurns=2;
+    }
+    data.players[opPid]=op;
+    setMsg(`플레이어 피해 ${dmg}`);
+  } else {
+    const idx=Number(to.slice(1));
+    const t=op.field[idx];
+    if(!t) return setMsg("상대 몬스터 없음",true);
+
+    t.hp-=a.atk;
+    if(t.hp<=0){
+      op.field[idx]=null;
+      data.lock=data.lock||{};
+      data.lock[`${opPid}-${idx}`]=1;
+      setMsg("처치! 상대 칸 1턴 잠김");
+    } else {
+      op.field[idx]=t;
+      setMsg(`타격! 잔HP ${t.hp}`);
+    }
+    data.players[opPid]=op;
+  }
+
+  data.attackedThisTurn.push(a.instId);
+
+  if(op.hp<=0){
+    data.status="end";
+    data.winner=me;
+  }
+
+  await setDoc(ref,data);
+};
+
+$("end").onclick=async ()=>{
+  const {ref,data}=await loadRoom();
+  if(!canAct(data)) return setMsg("내 턴 아님",true);
+
+  const opPid=otherPid(data);
+  if(!opPid) return setMsg("상대 없음",true);
+
+  data.turn+=1;
+  data.turnOwner=opPid;
+
+  if(data.turn>15){
+    data.status="end";
+    const ps=pids(data);
+    const hp0=data.players[ps[0]]?.hp??0;
+    const hp1=data.players[ps[1]]?.hp??0;
+    data.winner=(hp0===hp1)?"draw":(hp0>hp1?ps[0]:ps[1]);
+    await setDoc(ref,data);
+    return setMsg("15턴 종료");
+  }
+
+  ensureTurnStart(data);
+  await setDoc(ref,data);
+  setMsg("턴 종료");
+};
+
+$("restart").onclick=()=>location.reload();
 </script>
 
 </body>
