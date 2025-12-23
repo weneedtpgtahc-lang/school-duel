@@ -1,99 +1,109 @@
-<!doctype html>
-<html lang="ko">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Virus vs Vaccine Duel</title>
-<style>
-body{font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 12px}
-.card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:12px 0}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-button,input{padding:10px 12px;font-size:16px}
-pre{background:#f4f4f4;padding:12px;border-radius:10px;overflow:auto}
-</style>
-</head>
-<body>
-
-<h1>Virus vs Vaccine Duel</h1>
-
-<div class="card">
-  <div class="row">
-    <button id="create">방 만들기</button>
-    <input id="code" placeholder="방 코드 입력" />
-    <button id="join">방 참가</button>
-  </div>
-  <p id="info">대기중…</p>
-</div>
-
-<div class="card">
-  <div class="row">
-    <button id="virus">바이러스 선택</button>
-    <button id="vaccine">백신 선택</button>
-  </div>
-</div>
-
-<pre id="state"></pre>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore, doc, setDoc, getDoc, onSnapshot
+  getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* 🔴 여기 firebaseConfig를 네 것로 교체 */
+/* 🔴 너 Firebase 콘솔에서 복사한 설정을 그대로 넣어 */
 const firebaseConfig = {
-  apiKey: "AIzaSyBIZll4u_E6zHKyoJZqjCI6_P9cxhK1Shs",
-  authDomain: "yanngok-9323a.firebaseapp.com",
-  projectId: "yanngok-9323a",
-  storageBucket: "yanngok-9323a.firebasestorage.app",
-  messagingSenderId: "433037582784",
-  appId: "1:433037582784:web:43d77ca2530126240a2825",
-  measurementId: "G-M51E2S8PQF"
+  apiKey: "여기",
+  authDomain: "여기",
+  projectId: "여기",
+  storageBucket: "여기",
+  messagingSenderId: "여기",
+  appId: "여기",
+  measurementId: "여기(있으면)"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const $ = (id) => document.getElementById(id);
+
 const me = crypto.randomUUID();
 let room = null;
+let unsub = null;
 
-const $ = id => document.getElementById(id);
+function listen(){
+  if (!room) return;
+  if (unsub) unsub();
 
-function listen() {
-  onSnapshot(doc(db,"rooms",room), snap=>{
-    $("state").textContent = JSON.stringify(snap.data(),null,2);
+  unsub = onSnapshot(doc(db, "rooms", room), (snap) => {
+    if (!snap.exists()) {
+      $("state").textContent = "방이 존재하지 않음";
+      return;
+    }
+    $("state").textContent = JSON.stringify(snap.data(), null, 2);
+  }, (err) => {
+    $("state").textContent = "에러: " + err.message;
   });
 }
 
-$("create").onclick = async ()=>{
-  room = Math.random().toString(36).slice(2,8).toUpperCase();
-  await setDoc(doc(db,"rooms",room),{
-    turn:1,
-    players:{}
+async function loadRoom(){
+  if (!room) throw new Error("방 코드가 없음");
+  const ref = doc(db, "rooms", room);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error("방이 없음");
+  return { ref, data: snap.data() };
+}
+
+/* ✅ 방 만들기: rooms/{code} 구조를 우리가 쓰는 형태로 생성 */
+$("create").onclick = async () => {
+  room = Math.random().toString(36).slice(2, 8).toUpperCase();
+
+  await setDoc(doc(db, "rooms", room), {
+    status: "lobby",
+    turn: 1,
+    turnOwner: null,       // 나중에 2명 모이면 선공 지정
+    actionLeft: 2,         // 턴당 카드 사용 가능 횟수(기본 2)
+    players: {},           // 참가 시 채움
+    lock: {},              // 죽은 칸 잠금(다음 내 턴까지)
+    createdAt: serverTimestamp()
   });
-  $("info").textContent = "방: "+room;
+
+  $("code").value = room;
+  $("info").textContent = "방: " + room;
   listen();
 };
 
-$("join").onclick = ()=>{
-  room = $("code").value.toUpperCase();
-  $("info").textContent = "방: "+room;
+/* ✅ 방 참가 */
+$("join").onclick = () => {
+  room = $("code").value.trim().toUpperCase();
+  $("info").textContent = "방: " + room;
   listen();
 };
 
-$("virus").onclick = async ()=>{
-  const ref = doc(db,"rooms",room);
-  const d = (await getDoc(ref)).data();
-  d.players[me]={faction:"virus",hp:100};
-  await setDoc(ref,d);
+/* ✅ 진영 선택: players[me]에 field[4], mana 포함해서 저장 */
+$("virus").onclick = async () => {
+  const { ref, data } = await loadRoom();
+  data.players = data.players || {};
+
+  data.players[me] = {
+    faction: "virus",
+    hp: 100,
+    mana: 0,
+    field: [null, null, null, null]
+  };
+
+  // 2명 모이면 playing으로 전환(간단 버전)
+  if (Object.keys(data.players).length >= 2) data.status = "playing";
+
+  await setDoc(ref, data);
 };
 
-$("vaccine").onclick = async ()=>{
-  const ref = doc(db,"rooms",room);
-  const d = (await getDoc(ref)).data();
-  d.players[me]={faction:"vaccine",hp:100};
-  await setDoc(ref,d);
+$("vaccine").onclick = async () => {
+  const { ref, data } = await loadRoom();
+  data.players = data.players || {};
+
+  data.players[me] = {
+    faction: "vaccine",
+    hp: 100,
+    mana: 0,
+    field: [null, null, null, null]
+  };
+
+  if (Object.keys(data.players).length >= 2) data.status = "playing";
+
+  await setDoc(ref, data);
 };
 </script>
-</body>
-</html>
