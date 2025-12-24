@@ -24,7 +24,165 @@
 <h2>Virus vs Vaccine Duel</h2>
 
 <!-- ✅ LOBBY VIEW -->
-<div id="viewLobby" class="card">
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Virus vs Vaccine Duel</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: linear-gradient(#6fb6ff 0%, #6fb6ff 70%, #b86a2e 70%);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .screen {
+    width: 360px;
+    height: 640px;
+    position: relative;
+    background: #6fb6ff;
+    overflow: hidden;
+  }
+
+  /* 상단 장식 */
+  .header {
+    position: absolute;
+    top: 40px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .block {
+    width: 120px;
+    height: 40px;
+    background: repeating-linear-gradient(
+      90deg,
+      #c1440e 0 10px,
+      #a8380c 10px 20px
+    );
+    border-radius: 4px;
+    position: relative;
+  }
+
+  .block::after {
+    content: "!";
+    position: absolute;
+    inset: 8px;
+    background: gold;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: 900;
+    font-size: 20px;
+  }
+
+  /* 버튼 영역 */
+  .menu {
+    position: absolute;
+    top: 200px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+  }
+
+  button {
+    width: 160px;
+    padding: 14px;
+    border-radius: 20px;
+    border: none;
+    font-size: 18px;
+    font-weight: bold;
+    background: white;
+    box-shadow: 0 4px 0 #ccc;
+    cursor: pointer;
+  }
+
+  button:active {
+    transform: translateY(4px);
+    box-shadow: none;
+  }
+
+  input {
+    width: 160px;
+    padding: 10px;
+    border-radius: 12px;
+    border: none;
+    text-align: center;
+    font-size: 16px;
+  }
+
+  /* 바닥 */
+  .ground {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 80px;
+    background: repeating-linear-gradient(
+      90deg,
+      #c1440e 0 20px,
+      #a8380c 20px 40px
+    );
+  }
+
+  /* 파이프 장식 */
+  .pipe {
+    position: absolute;
+    bottom: 80px;
+    width: 50px;
+    height: 80px;
+    background: #4caf50;
+    border-radius: 6px 6px 0 0;
+  }
+
+  .pipe.left { left: 40px; }
+  .pipe.center { left: 155px; height: 100px; }
+  .pipe.right { right: 40px; }
+
+  .coin {
+    position: absolute;
+    bottom: 190px;
+    left: 170px;
+    width: 30px;
+    height: 30px;
+    background: gold;
+    border-radius: 50%;
+    border: 3px solid #e0a800;
+  }
+</style>
+</head>
+
+<body>
+  <div class="screen">
+
+    <div class="header">
+      <div class="block"></div>
+    </div>
+
+    <div class="menu">
+      <button id="createRoom">방 만들기</button>
+      <input id="roomCode" placeholder="코드 입력" />
+      <button id="joinRoom">방 참가</button>
+    </div>
+
+    <div class="pipe left"></div>
+    <div class="pipe center"></div>
+    <div class="pipe right"></div>
+    <div class="coin"></div>
+
+    <div class="ground"></div>
+  </div>
+</body>
+</html>
+
+  <div id="viewLobby" class="card">
   <div class="row">
     <button id="create">방 만들기</button>
     <input id="code" placeholder="방 코드 입력" />
