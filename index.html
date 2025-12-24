@@ -4,280 +4,329 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Virus vs Vaccine Duel</title>
+
 <style>
-  body{font-family:system-ui,sans-serif;max-width:980px;margin:20px auto;padding:0 12px}
-  h2{margin:0 0 10px}
-  .card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:10px 0}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  button,select,input{padding:10px 12px;font-size:15px}
-  pre{background:#f6f6f6;padding:10px;border-radius:10px;overflow:auto;max-height:360px}
+  *{box-sizing:border-box}
+  .hide{display:none !important;}
   .muted{color:#666}
   .ok{color:#0a7}
   .bad{color:#b00}
   .pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#eee}
-  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
-  .hide{display:none}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+
+  /* =========================
+     ✅ 로비(마리오풍) 전용 UI
+     - 기존 게임 로직/ID(create/join/code...) 그대로 사용
+     ========================= */
+  body{
+    margin:0;
+    font-family:system-ui,sans-serif;
+    min-height:100vh;
+    background:#0f0f0f;
+  }
+
+  /* 로비일 때만 "게임기 화면"처럼 가운데 */
+  #viewLobbyWrap{
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(#6db8ff 0%, #6db8ff 70%, #7a3b1a 70%);
+  }
+  .lobbyScreen{
+    width:360px; height:640px;
+    background:#6db8ff;
+    position:relative;
+    overflow:hidden;
+    border-radius:22px;
+    box-shadow:0 10px 40px rgba(0,0,0,.35);
+    border:3px solid rgba(255,255,255,.25);
+  }
+  .lobbyTopBlock{
+    width:96px; height:70px;
+    background:gold;
+    border:6px solid #b8860b;
+    border-radius:8px;
+    margin:42px auto 10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:900;
+    font-size:34px;
+    color:#4b3b00;
+  }
+  .lobbyTitle{
+    text-align:center;
+    font-weight:900;
+    color:#fff;
+    text-shadow:0 3px 0 rgba(0,0,0,.25);
+    margin:6px 0 0;
+  }
+  .lobbySub{
+    text-align:center;
+    color:rgba(255,255,255,.92);
+    text-shadow:0 2px 0 rgba(0,0,0,.18);
+    margin:6px 0 0;
+    font-size:13px;
+  }
+  .lobbyMenu{
+    margin-top:28px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    align-items:center;
+    padding:0 18px;
+  }
+  .lobbyBtn{
+    width:200px;
+    padding:14px 14px;
+    border-radius:16px;
+    border:none;
+    font-size:18px;
+    font-weight:900;
+    background:#fff;
+    box-shadow:0 5px 0 #bbb;
+    cursor:pointer;
+  }
+  .lobbyBtn:active{transform:translateY(4px); box-shadow:0 1px 0 #bbb;}
+  .lobbyInput{
+    width:200px;
+    padding:12px 12px;
+    border-radius:14px;
+    border:none;
+    font-size:16px;
+    text-align:center;
+    outline:none;
+  }
+
+  .lobbyInfoRow{
+    margin-top:14px;
+    width:100%;
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .lobbyInfoPill{
+    background:rgba(255,255,255,.85);
+    padding:6px 10px;
+    border-radius:999px;
+    font-size:12px;
+  }
+  .lobbyFactions{
+    margin-top:14px;
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .lobbySmallBtn{
+    width:148px;
+    padding:12px 12px;
+    border-radius:16px;
+    border:none;
+    font-size:15px;
+    font-weight:900;
+    background:#fff;
+    box-shadow:0 5px 0 #bbb;
+    cursor:pointer;
+  }
+  .lobbySmallBtn:active{transform:translateY(4px); box-shadow:0 1px 0 #bbb;}
+  .lobbyHostBtn{
+    width:312px;
+    padding:12px 12px;
+    border-radius:16px;
+    border:none;
+    font-size:15px;
+    font-weight:900;
+    background:#111;
+    color:#fff;
+    box-shadow:0 5px 0 #000;
+    cursor:pointer;
+  }
+  .lobbyHostBtn:active{transform:translateY(4px); box-shadow:0 1px 0 #000;}
+
+  .lobbyGround{
+    position:absolute; bottom:0; left:0; right:0;
+    height:90px;
+    background:repeating-linear-gradient(45deg,#7a3b1a,#7a3b1a 10px,#8b4513 10px,#8b4513 20px);
+  }
+  .lobbyPipe{
+    position:absolute; bottom:90px;
+    width:54px; height:70px;
+    background:#2ecc71;
+    border-radius:8px 8px 0 0;
+    box-shadow:inset 0 0 0 4px rgba(0,0,0,.12);
+  }
+  .lobbyPipe.left{left:40px}
+  .lobbyPipe.center{left:153px;height:92px}
+  .lobbyPipe.right{right:40px}
+
+  /* =========================
+     ✅ 게임 UI(기존 카드게임 화면)
+     ========================= */
+  #gameRoot{
+    max-width:1100px;
+    margin:18px auto;
+    padding:0 12px 30px;
+    color:#111;
+  }
+  h2.gameH2{margin:0 0 10px;color:#fff}
+  .card{
+    border:1px solid #ddd;border-radius:12px;padding:12px;margin:10px 0;background:#fff
+  }
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button,select,input{padding:10px 12px;font-size:15px}
+  pre{background:#f6f6f6;padding:10px;border-radius:10px;overflow:auto;max-height:360px}
+  .grid{display:grid;gap:10px}
+  .grid.hand{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  .grid.field{grid-template-columns:repeat(4,minmax(170px,1fr))}
+  .slot{
+    border:1px dashed #ccc;border-radius:14px;padding:8px;min-height:286px;
+    background:linear-gradient(180deg,#fff,#fafafa);
+    position:relative;
+  }
+  .slotTitle{font-size:12px;color:#777;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center}
+  .lock{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(20,20,20,.55);color:#fff;border-radius:14px;font-weight:900;
+  }
+  .mcard{
+    border:1px solid #ddd;border-radius:14px;overflow:hidden;background:#fff;
+    box-shadow:0 2px 10px rgba(0,0,0,.06);
+  }
+  .mimg{width:100%;height:190px;object-fit:cover;display:block;background:#eee}
+  .mbody{padding:10px}
+  .mname{font-weight:900;font-size:14px;margin:0 0 6px}
+  .mstats{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+  .tag{background:#eee;border-radius:999px;padding:3px 8px;font-size:12px}
+  .effect{font-size:12px;line-height:1.35;color:#444;white-space:pre-line}
+  .small{font-size:12px;color:#777}
+  .clickable{cursor:pointer}
 </style>
 </head>
-<body>
-
-<h2>Virus vs Vaccine Duel</h2>
-
-<!-- ✅ LOBBY VIEW -->
-<!doctype html>
-<html lang="ko">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Virus vs Vaccine Duel</title>
-
-<style>
-  body {
-    margin: 0;
-    font-family: system-ui, sans-serif;
-    background: linear-gradient(#6fb6ff 0%, #6fb6ff 70%, #b86a2e 70%);
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .screen {
-    width: 360px;
-    height: 640px;
-    position: relative;
-    background: #6fb6ff;
-    overflow: hidden;
-  }
-
-  /* 상단 장식 */
-  .header {
-    position: absolute;
-    top: 40px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
-
-  .block {
-    width: 120px;
-    height: 40px;
-    background: repeating-linear-gradient(
-      90deg,
-      #c1440e 0 10px,
-      #a8380c 10px 20px
-    );
-    border-radius: 4px;
-    position: relative;
-  }
-
-  .block::after {
-    content: "!";
-    position: absolute;
-    inset: 8px;
-    background: gold;
-    border-radius: 4px;
-    text-align: center;
-    font-weight: 900;
-    font-size: 20px;
-  }
-
-  /* 버튼 영역 */
-  .menu {
-    position: absolute;
-    top: 200px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    align-items: center;
-  }
-
-  button {
-    width: 160px;
-    padding: 14px;
-    border-radius: 20px;
-    border: none;
-    font-size: 18px;
-    font-weight: bold;
-    background: white;
-    box-shadow: 0 4px 0 #ccc;
-    cursor: pointer;
-  }
-
-  button:active {
-    transform: translateY(4px);
-    box-shadow: none;
-  }
-
-  input {
-    width: 160px;
-    padding: 10px;
-    border-radius: 12px;
-    border: none;
-    text-align: center;
-    font-size: 16px;
-  }
-
-  /* 바닥 */
-  .ground {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 80px;
-    background: repeating-linear-gradient(
-      90deg,
-      #c1440e 0 20px,
-      #a8380c 20px 40px
-    );
-  }
-
-  /* 파이프 장식 */
-  .pipe {
-    position: absolute;
-    bottom: 80px;
-    width: 50px;
-    height: 80px;
-    background: #4caf50;
-    border-radius: 6px 6px 0 0;
-  }
-
-  .pipe.left { left: 40px; }
-  .pipe.center { left: 155px; height: 100px; }
-  .pipe.right { right: 40px; }
-
-  .coin {
-    position: absolute;
-    bottom: 190px;
-    left: 170px;
-    width: 30px;
-    height: 30px;
-    background: gold;
-    border-radius: 50%;
-    border: 3px solid #e0a800;
-  }
-</style>
-</head>
 
 <body>
-  <div class="screen">
 
-    <div class="header">
-      <div class="block"></div>
+<!-- ✅ 로비(마리오풍) -->
+<div id="viewLobbyWrap">
+  <div class="lobbyScreen">
+    <div class="lobbyTopBlock">!</div>
+    <h1 class="lobbyTitle">Virus vs Vaccine</h1>
+    <p class="lobbySub">방을 만들고 친구가 코드를 입력하면 듀얼 시작</p>
+
+    <div class="lobbyMenu">
+      <button id="create" class="lobbyBtn">방 만들기</button>
+      <input id="code" class="lobbyInput" placeholder="방 코드 입력" />
+      <button id="join" class="lobbyBtn">방 참가</button>
+
+      <div class="lobbyInfoRow">
+        <span id="conn" class="lobbyInfoPill">미연결</span>
+        <span id="info" class="lobbyInfoPill"></span>
+        <span id="meTag" class="lobbyInfoPill mono"></span>
+      </div>
+
+      <div class="lobbyFactions">
+        <button id="virus" class="lobbySmallBtn">바이러스 선택</button>
+        <button id="vaccine" class="lobbySmallBtn">백신 선택</button>
+      </div>
+
+      <button id="start" class="lobbyHostBtn hide">게임 시작(호스트)</button>
+      <div id="lobbyStatus" class="lobbySub" style="margin-top:10px;"></div>
     </div>
 
-    <div class="menu">
-      <button id="createRoom">방 만들기</button>
-      <input id="roomCode" placeholder="코드 입력" />
-      <button id="joinRoom">방 참가</button>
-    </div>
-
-    <div class="pipe left"></div>
-    <div class="pipe center"></div>
-    <div class="pipe right"></div>
-    <div class="coin"></div>
-
-    <div class="ground"></div>
-  </div>
-</body>
-</html>
-
-  <div id="viewLobby" class="card">
-  <div class="row">
-    <button id="create">방 만들기</button>
-    <input id="code" placeholder="방 코드 입력" />
-    <button id="join">방 참가</button>
-    <span id="conn" class="pill muted">미연결</span>
-    <span id="info" class="muted"></span>
-    <span id="meTag" class="pill mono muted"></span>
-  </div>
-
-  <div class="row" style="margin-top:10px">
-    <span class="pill">진영 선택</span>
-    <button id="virus">바이러스 선택</button>
-    <button id="vaccine">백신 선택</button>
-
-    <!-- ✅ 호스트 전용 시작 버튼 -->
-    <button id="start" class="hide">게임 시작(호스트)</button>
-
-    <span id="lobbyStatus" class="muted"></span>
-  </div>
-
-  <p class="muted" style="margin:10px 0 0">
-    • 방 만든 사람(호스트)만 ‘게임 시작’ 버튼이 보여요.<br>
-    • 2명 모두 진영을 선택해야 시작 버튼이 작동해요.
-  </p>
-</div>
-
-<!-- ✅ GAME VIEW -->
-<div id="viewGame" class="hide">
-  <div class="card">
-    <div class="row">
-      <span id="gameStatus" class="pill"></span>
-      <button id="end">턴 종료</button>
-      <span id="msg" class="muted"></span>
-    </div>
-    <p class="muted" style="margin:8px 0 0">
-      턴 시작: 마나 +3 / 턴당 카드 사용 2회 / 공격 2회(서로 다른 몬스터)<br>
-      플레이어 피감 = (내 필드 몬스터 수×20%) + (백신이면 +20%), 최대 80%<br>
-      표식(2턴): 바이러스 몬스터가 플레이어 공격 성공 시 대상에게 부여, 받는 피해 +15%<br>
-      몬스터 사망 시 해당 칸은 “대상 플레이어의 다음 턴 시작까지” 잠김
-    </p>
-  </div>
-
-  <div class="card">
-    <div class="row">
-      <span class="pill">상점(턴당 1회)</span>
-      <select id="tier">
-        <option value="low">하급(2)</option>
-        <option value="mid">중급(5)</option>
-        <option value="high">상급(9)</option>
-      </select>
-      <button id="buy">구매</button>
-
-      <span class="pill">소환</span>
-      <select id="handSel" style="min-width:320px"></select>
-      <select id="mySlot">
-        <option value="0">내 0칸</option><option value="1">내 1칸</option>
-        <option value="2">내 2칸</option><option value="3">내 3칸</option>
-      </select>
-      <button id="play">소환(행동 -1)</button>
-    </div>
-
-    <div class="row" style="margin-top:8px">
-      <span class="pill">공격</span>
-      <select id="atkFrom">
-        <option value="0">내 0칸</option><option value="1">내 1칸</option>
-        <option value="2">내 2칸</option><option value="3">내 3칸</option>
-      </select>
-      <select id="atkTo" style="min-width:240px"></select>
-      <button id="attack">공격</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin:0 0 6px">패</h3>
-    <pre id="handView"></pre>
+    <div class="lobbyPipe left"></div>
+    <div class="lobbyPipe center"></div>
+    <div class="lobbyPipe right"></div>
+    <div class="lobbyGround"></div>
   </div>
 </div>
 
-<!-- ✅ END VIEW -->
-<div id="viewEnd" class="card hide">
-  <h3 style="margin:0 0 6px">게임 종료</h3>
-  <p id="endText" class="muted"></p>
-  <button id="restart">새로고침(다시하기)</button>
-</div>
+<!-- ✅ 게임 화면(기존) -->
+<div id="gameRoot" class="hide">
+  <h2 class="gameH2">Virus vs Vaccine Duel</h2>
 
-<div class="card">
-  <h3 style="margin:0 0 6px">실시간 상태(디버그)</h3>
-  <pre id="state"></pre>
+  <div id="viewGame" class="hide">
+    <div class="card">
+      <div class="row">
+        <span id="gameStatus" class="pill"></span>
+        <button id="end">턴 종료</button>
+        <span id="msg" class="muted"></span>
+      </div>
+      <p class="muted" style="margin:8px 0 0">
+        턴 시작: 마나 +3 / 턴당 카드 사용 2회 / 공격 2회(서로 다른 몬스터)<br>
+        플레이어 피감 = (내 필드 몬스터 수×20%) + (백신이면 +20%), 최대 80%<br>
+        표식(2턴): 바이러스 표식 몬스터가 플레이어 공격 성공 시 부여, 받는 피해 +15%<br>
+        몬스터 사망 시 해당 칸은 “대상 플레이어의 다음 턴 시작까지” 잠김
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <span class="pill">상점(턴당 1회)</span>
+        <select id="tier">
+          <option value="low">하급(2)</option>
+          <option value="mid">중급(5)</option>
+          <option value="high">상급(9)</option>
+        </select>
+        <button id="buy">구매</button>
+
+        <span class="pill">소환</span>
+        <select id="handSel" style="min-width:320px"></select>
+        <select id="mySlot">
+          <option value="0">내 0칸</option><option value="1">내 1칸</option>
+          <option value="2">내 2칸</option><option value="3">내 3칸</option>
+        </select>
+        <button id="play">소환(행동 -1)</button>
+
+        <span class="pill">공격</span>
+        <select id="atkFrom">
+          <option value="0">내 0칸</option><option value="1">내 1칸</option>
+          <option value="2">내 2칸</option><option value="3">내 3칸</option>
+        </select>
+        <select id="atkTo" style="min-width:240px"></select>
+        <button id="attack">공격</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h3 style="margin:0">필드</h3>
+        <span class="small">카드를 클릭하면 “소환 슬롯/공격자” 선택이 자동 변경</span>
+      </div>
+      <h4 style="margin:10px 0 6px">내 필드</h4>
+      <div id="myField" class="grid field"></div>
+
+      <h4 style="margin:14px 0 6px">상대 필드</h4>
+      <div id="opField" class="grid field"></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h3 style="margin:0">내 손패</h3>
+        <span class="small">손패 카드를 클릭하면 위 “소환 선택” 자동 변경</span>
+      </div>
+      <div id="handGrid" class="grid hand" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div id="viewEnd" class="card hide">
+    <h3 style="margin:0 0 6px">게임 종료</h3>
+    <p id="endText" class="muted"></p>
+    <button id="restart">새로고침(다시하기)</button>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 6px">실시간 상태(디버그)</h3>
+    <pre id="state"></pre>
+  </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ✅ Firebase 설정 */
+/* ✅ Firebase 설정(네가 제공한 값) */
 const firebaseConfig = {
   apiKey: "AIzaSyBIZll4u_E6zHKyoJZqjCI6_P9cxhK1Shs",
   authDomain: "yanngok-9323a.firebaseapp.com",
@@ -299,7 +348,9 @@ const uid=()=>Math.random().toString(36).slice(2,10);
 let room=null;
 let unsub=null;
 
-function show(id,on){ $(id).classList.toggle("hide", !on); }
+function show(el, on){ el.classList.toggle("hide", !on); }
+function showById(id,on){ $(id).classList.toggle("hide", !on); }
+function setMsg(t,bad=false){ $("msg").textContent=t; $("msg").className=bad?"bad":"muted"; }
 
 function getPid(r){
   const k="vvd_pid_"+r;
@@ -309,46 +360,75 @@ function getPid(r){
 }
 let me=null;
 
-/* ===== 카드 풀(원하는 대로 수정 가능) ===== */
 const COST={low:2,mid:5,high:9};
+
+/* ✅ 바이러스 이미지 경로(네 업로드 기준) */
+const VIRUS_IMAGES = {
+  low:  ["assets/virus/v_low_1.webp","assets/virus/v_low_2.jpg","assets/virus/v_low_3.webp"],
+  mid:  ["assets/virus/v_mid_1.webp","assets/virus/v_mid_2.webp","assets/virus/v_mid_3.webp"],
+  high: ["assets/virus/v_high_1.webp","assets/virus/v_high_2.jpg","assets/virus/v_high_3.webp"],
+};
+
+/* ✅ 몬스터 데이터(현재까지 확정된 표 기준) */
 const POOL={
   virus:{
     low:[
-      {id:"vL1",name:"침투 포자",tier:"low",atk:7,hp:16,mark:false},
-      {id:"vL2",name:"복제 세포",tier:"low",atk:6,hp:18,mark:false},
-      {id:"vL3",name:"점액 분열체",tier:"low",atk:8,hp:14,mark:true},
+      {id:"vL1",name:"침투 포자",tier:"low",atk:7,hp:16,mark:false,effect:"효과 없음",img:VIRUS_IMAGES.low[0]},
+      {id:"vL2",name:"복제 세포",tier:"low",atk:6,hp:18,mark:false,effect:"효과 없음",img:VIRUS_IMAGES.low[1]},
+      {id:"vL3",name:"점액 분열체",tier:"low",atk:8,hp:14,mark:true, effect:"플레이어 공격 시 표식(2턴) 부여",img:VIRUS_IMAGES.low[2]},
     ],
     mid:[
-      {id:"vM1",name:"감염 확산체",tier:"mid",atk:9,hp:24,mark:true},
-      {id:"vM2",name:"변이 돌격체",tier:"mid",atk:11,hp:20,mark:false},
-      {id:"vM3",name:"은폐 잠복체",tier:"mid",atk:8,hp:28,mark:true},
+      {id:"vM1",name:"감염 확산체",tier:"mid",atk:6,hp:32,mark:false,effect:"효과 없음 (완전 탱커)",img:VIRUS_IMAGES.mid[0]},
+      {id:"vM2",name:"변이 돌격체",tier:"mid",atk:11,hp:22,mark:false,effect:"효과 없음",img:VIRUS_IMAGES.mid[1]},
+      {id:"vM3",name:"은폐 잠복체",tier:"mid",atk:8,hp:28,mark:true, effect:"플레이어 공격 시 표식(2턴) 부여",img:VIRUS_IMAGES.mid[2]},
     ],
     high:[
-      {id:"vH1",name:"숙주 지배체",tier:"high",atk:13,hp:38,mark:true},
-      {id:"vH2",name:"신경 오염체",tier:"high",atk:15,hp:32,mark:true},
-      {id:"vH3",name:"재앙 군체핵",tier:"high",atk:12,hp:44,mark:false},
+      {id:"vH1",name:"숙주 지배체",tier:"high",atk:9,hp:48,mark:false,effect:"강제 공격 대상 / 받은 피해의 30% 반사",img:VIRUS_IMAGES.high[1]},
+      {id:"vH2",name:"신경 오염체",tier:"high",atk:14,hp:34,mark:true, effect:"플레이어 공격 시 표식(2턴) 부여",img:VIRUS_IMAGES.high[0]},
+      {id:"vH3",name:"재앙 군체핵",tier:"high",atk:10,hp:52,mark:false,effect:"효과 없음 (초고체력 유지형)",img:VIRUS_IMAGES.high[2]},
     ],
   },
   vaccine:{
     low:[
-      {id:"cL1",name:"주사병",tier:"low",atk:6,hp:18},
-      {id:"cL2",name:"소독 요원",tier:"low",atk:7,hp:16},
-      {id:"cL3",name:"방역 드론",tier:"low",atk:5,hp:20},
+      {id:"cL1",name:"주사병",tier:"low",atk:6,hp:18,mark:false,effect:"효과 없음",img:""},
+      {id:"cL2",name:"소독 요원",tier:"low",atk:7,hp:16,mark:false,effect:"효과 없음",img:""},
+      {id:"cL3",name:"방역 드론",tier:"low",atk:5,hp:20,mark:false,effect:"효과 없음",img:""},
     ],
     mid:[
-      {id:"cM1",name:"항체 방패병",tier:"mid",atk:8,hp:28},
-      {id:"cM2",name:"면역 수호자",tier:"mid",atk:10,hp:24},
-      {id:"cM3",name:"정화 공병",tier:"mid",atk:9,hp:26},
+      {id:"cM1",name:"항체 방패병",tier:"mid",atk:7,hp:30,mark:false,effect:"효과 없음 (탱커)",img:""},
+      {id:"cM2",name:"면역 수호자",tier:"mid",atk:10,hp:24,mark:false,effect:"효과 없음",img:""},
+      {id:"cM3",name:"정화 공병",tier:"mid",atk:9,hp:26,mark:false,effect:"효과 없음",img:""},
     ],
     high:[
-      {id:"cH1",name:"면역 사령관",tier:"high",atk:12,hp:44},
-      {id:"cH2",name:"백신 배양체",tier:"high",atk:11,hp:48},
-      {id:"cH3",name:"항원 제압기",tier:"high",atk:14,hp:40},
+      {id:"cH1",name:"면역 사령관",tier:"high",atk:12,hp:44,mark:false,effect:"효과 없음",img:""},
+      {id:"cH2",name:"백신 배양체",tier:"high",atk:9,hp:52,mark:false,effect:"효과 없음 (최고 체력)",img:""},
+      {id:"cH3",name:"항원 제압기",tier:"high",atk:14,hp:40,mark:false,effect:"효과 없음",img:""},
     ],
   }
 };
 
-/* ===== helpers ===== */
+function tierLabel(t){ return t==="low"?"하급":t==="mid"?"중급":"상급"; }
+function cardHTML(m, extraTags=""){
+  const img = (m.img && m.img.trim()) ? m.img : "";
+  return `
+    <div class="mcard">
+      <img class="mimg" src="${img || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23eaeaea'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23888' font-size='20'%3ENo Image%3C/text%3E%3C/svg%3E"}" alt="${m.name}">
+      <div class="mbody">
+        <div class="mname">${m.name}</div>
+        <div class="mstats">
+          <span class="tag">ATK ${m.atk}</span>
+          <span class="tag">HP ${m.hp}</span>
+          ${m.mark ? `<span class="tag">표식</span>` : ``}
+          <span class="tag">${tierLabel(m.tier)}</span>
+          ${extraTags}
+        </div>
+        <div class="effect">${m.effect || "효과 없음"}</div>
+      </div>
+    </div>
+  `;
+}
+
+/* ===== 룸/플레이어 유틸 ===== */
 async function loadRoom(){
   if(!room) throw new Error("방 코드 없음");
   const ref=doc(db,"rooms",room);
@@ -371,11 +451,6 @@ function playerDR(data,pid){
 }
 const markBonus=(target)=>((target?.debuffs?.markTurns||0)>0?0.15:0);
 const canAct=(data)=>data.status==="playing" && data.turnOwner===me;
-
-function setMsg(t,bad=false){
-  $("msg").textContent=t;
-  $("msg").className=bad?"bad":"muted";
-}
 
 function ensureTurnStart(data){
   data.turnState=data.turnState||{};
@@ -400,48 +475,95 @@ function ensureTurnStart(data){
   data.turnState.startedKey=k;
 }
 
+/* ===== 게임 화면 렌더 ===== */
+function renderField(containerId, data, pid, isMine){
+  const cont = $(containerId);
+  cont.innerHTML = "";
+  const p = data.players?.[pid];
+  const lock = data.lock || {};
+
+  for(let i=0;i<4;i++){
+    const lk = `${pid}-${i}`;
+    const lockedTurns = lock[lk] || 0;
+    const m = p?.field?.[i] || null;
+
+    const slot = document.createElement("div");
+    slot.className = "slot";
+    slot.innerHTML = `
+      <div class="slotTitle">
+        <span>${isMine ? "내" : "상대"} ${i}칸</span>
+        <span class="small">${lockedTurns?`잠김(${lockedTurns})`:``}</span>
+      </div>
+      ${m ? cardHTML(m) : `<div class="small muted">빈 칸</div>`}
+      ${lockedTurns ? `<div class="lock">잠김</div>` : ``}
+    `;
+
+    if(isMine){
+      slot.classList.add("clickable");
+      slot.onclick = ()=>{
+        $("mySlot").value = String(i);
+        $("atkFrom").value = String(i);
+      };
+    }
+
+    cont.appendChild(slot);
+  }
+}
+function renderHand(data){
+  const my = myData(data);
+  const grid = $("handGrid");
+  grid.innerHTML = "";
+
+  (my?.hand||[]).forEach((c, idx)=>{
+    const wrap = document.createElement("div");
+    wrap.className = "clickable";
+    wrap.innerHTML = cardHTML(c, `<span class="tag">#${idx}</span>`);
+    wrap.onclick = ()=>{ $("handSel").value = String(idx); };
+    grid.appendChild(wrap);
+  });
+}
+
 function render(data){
   $("state").textContent = JSON.stringify(data,null,2);
 
-  show("viewLobby", data.status==="lobby");
-  show("viewGame", data.status==="playing");
-  show("viewEnd", data.status==="end");
+  // ✅ 로비/게임 전환
+  showById("viewLobbyWrap", data.status==="lobby");
+  showById("gameRoot", data.status!=="lobby");
+  showById("viewGame", data.status==="playing");
+  showById("viewEnd", data.status==="end");
 
   const my=myData(data);
   const op=opData(data);
-
   const ps=pids(data);
   const picked = ps.filter(pid => !!data.players?.[pid]?.faction).length;
 
+  // 호스트만 시작 버튼
   const isHost = (data.host === me);
-  show("start", data.status==="lobby" && isHost); // ✅ 호스트만 시작 버튼 표시
+  showById("start", data.status==="lobby" && isHost);
 
   $("lobbyStatus").textContent =
-    `참가:${ps.length}/2, 진영선택:${picked}/2` +
-    (isHost ? " (호스트)" : "");
+    `참가 ${ps.length}/2 · 진영선택 ${picked}/2` + (isHost ? " · 호스트" : "");
 
   if(data.status==="playing"){
     $("gameStatus").textContent =
       `턴:${data.turn} / 턴주인:${data.turnOwner===me?"나":"상대"} / 행동:${data.actionLeft} / 내마나:${my?.mana ?? 0} / 내HP:${my?.hp ?? 0}`;
   }
 
-  // 패/선택
+  // 손패 dropdown
   const handSel=$("handSel");
   handSel.innerHTML="";
   (my?.hand||[]).forEach((c,i)=>{
     const o=document.createElement("option");
     o.value=String(i);
-    o.textContent=`[${i}] ${c.name} (${c.tier} ${c.atk}/${c.hp}${c.mark?" 표식":""})`;
+    o.textContent=`[${i}] ${c.name} (${tierLabel(c.tier)} ${c.atk}/${c.hp}${c.mark?" 표식":""})`;
     handSel.appendChild(o);
   });
-  $("handView").textContent = JSON.stringify(my?.hand||[],null,2);
 
-  // 공격 대상
+  // 공격 대상 dropdown
   const atkTo=$("atkTo");
   atkTo.innerHTML="";
   const optP=document.createElement("option");
-  optP.value="P";
-  optP.textContent="상대 플레이어";
+  optP.value="P"; optP.textContent="상대 플레이어";
   atkTo.appendChild(optP);
   if(op){
     for(let i=0;i<4;i++){
@@ -453,6 +575,11 @@ function render(data){
     }
   }
 
+  if(my) renderField("myField", data, me, true);
+  if(op) renderField("opField", data, otherPid(data), false);
+  if(my) renderHand(data);
+
+  // 버튼 enable
   const enabled = canAct(data) && !!my;
   ["buy","play","attack","end"].forEach(id=>$(id).disabled = !enabled);
 
@@ -465,6 +592,7 @@ function render(data){
   }
 }
 
+/* ===== realtime ===== */
 function listen(){
   if(!room) return;
   if(unsub) unsub();
@@ -472,7 +600,7 @@ function listen(){
   unsub = onSnapshot(doc(db,"rooms",room), async (snap)=>{
     if(!snap.exists()){
       $("conn").textContent="방 없음";
-      $("conn").className="pill bad";
+      $("conn").className="lobbyInfoPill bad";
       return;
     }
     const {ref,data}=await loadRoom();
@@ -483,11 +611,11 @@ function listen(){
     }
 
     $("conn").textContent="연결됨";
-    $("conn").className="pill ok";
+    $("conn").className="lobbyInfoPill ok";
     render(data);
   },(err)=>{
     $("conn").textContent="에러";
-    $("conn").className="pill bad";
+    $("conn").className="lobbyInfoPill bad";
     $("state").textContent=err.message;
   });
 }
@@ -499,7 +627,7 @@ $("create").onclick=async ()=>{
   $("meTag").textContent = "me:" + me.slice(0,8);
 
   await setDoc(doc(db,"rooms",room),{
-    host: me,                 // ✅ 호스트 저장
+    host: me,
     status:"lobby",
     turn:1,
     turnOwner:null,
@@ -513,7 +641,7 @@ $("create").onclick=async ()=>{
   });
 
   $("code").value=room;
-  $("info").textContent="방: "+room;
+  $("info").textContent="ROOM: "+room;
   listen();
 };
 
@@ -522,11 +650,11 @@ $("join").onclick=()=>{
   if(!room) return;
   me=getPid(room);
   $("meTag").textContent = "me:" + me.slice(0,8);
-  $("info").textContent="방: "+room;
+  $("info").textContent="ROOM: "+room;
   listen();
 };
 
-/* ===== 진영 선택(자동 시작 없음) ===== */
+/* ===== 진영 선택 ===== */
 async function chooseFaction(faction){
   const {ref,data}=await loadRoom();
   data.players=data.players||{};
@@ -544,10 +672,9 @@ async function chooseFaction(faction){
 $("virus").onclick=()=>chooseFaction("virus");
 $("vaccine").onclick=()=>chooseFaction("vaccine");
 
-/* ===== 호스트 시작 버튼 ===== */
+/* ===== 호스트 시작 ===== */
 $("start").onclick = async ()=>{
   const {ref, data} = await loadRoom();
-
   if (data.host !== me) return setMsg("호스트만 시작 가능", true);
   if (data.status !== "lobby") return setMsg("이미 시작됨", true);
 
@@ -617,7 +744,7 @@ $("play").onclick=async ()=>{
   const card=my.hand[idx];
   if(!card) return setMsg("패 오류",true);
 
-  my.field[slot]={instId:uid(),id:card.id,name:card.name,tier:card.tier,atk:card.atk,hp:card.hp,alive:true,mark:!!card.mark};
+  my.field[slot]={...card, alive:true};
   my.hand.splice(idx,1);
 
   data.players[me]=my;
@@ -650,12 +777,14 @@ $("attack").onclick=async ()=>{
     const dr=playerDR(data,opPid);
     const bonus=(my.faction==="virus" && a.mark)?markBonus(op):0;
     const dmg=Math.max(1, Math.floor(a.atk*(1+bonus)*(1-dr)));
+
     op.hp-=dmg;
 
     if(my.faction==="virus" && a.mark){
       op.debuffs=op.debuffs||{};
       op.debuffs.markTurns=2;
     }
+
     data.players[opPid]=op;
     setMsg(`플레이어 피해 ${dmg}`);
   } else {
@@ -713,6 +842,5 @@ $("end").onclick=async ()=>{
 
 $("restart").onclick=()=>location.reload();
 </script>
-
 </body>
 </html>
