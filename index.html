@@ -243,12 +243,18 @@ const uid=()=>Math.random().toString(36).slice(2,10);
 const COST={low:2,mid:5,high:9};
 const MAX_TURN=15;
 
-/* ===== 이미지 경로(바이러스 9장) ===== */
+/* ===== ✅ 이미지 경로(네 폴더 구조에 맞춤) ===== */
 const VIRUS_IMAGES = {
-  low:  ["assets/virus/v_low_1.webp","assets/virus/v_low_2.jpg","assets/virus/v_low_3.webp"],
-  mid:  ["assets/virus/v_mid_1.webp","assets/virus/v_mid_2.webp","assets/virus/v_mid_3.webp"],
-  high: ["assets/virus/v_high_1.webp","assets/virus/v_high_2.jpg","assets/virus/v_high_3.webp"],
+  low:  ["assets/virus/virus_low1.png","assets/virus/virus_low2.png","assets/virus/virus_low3.png"],
+  mid:  ["assets/virus/virus_mid1.png","assets/virus/virus_mid2.png","assets/virus/virus_mid3.png"],
+  high: ["assets/virus/virus_high1.png","assets/virus/virus_high2.png","assets/virus/virus_high3.png"],
 };
+const VAX_IMAGES = {
+  low:  ["assets/vaccine/vax_low1.png","assets/vaccine/vax_low2.png","assets/vaccine/vax_low3.png"],
+  mid:  ["assets/vaccine/vax_mid1.png","assets/vaccine/vax_mid2.png","assets/vaccine/vax_mid3.png"],
+  high: ["assets/vaccine/vax_high1.png","assets/vaccine/vax_high2.png","assets/vaccine/vax_high3.png"],
+};
+
 const fallbackImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='360'%3E%3Crect width='100%25' height='100%25' fill='%231a2333'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23cfe1ff' font-size='22'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 /* ===== 몬스터 데이터(확정표) ===== */
@@ -265,26 +271,26 @@ const POOL={
       {id:"vM3",name:"은폐 잠복체",tier:"mid",atk:8,hp:28,mark:true, effect:"플레이어 공격 시 표식(2턴) 부여",img:VIRUS_IMAGES.mid[2]},
     ],
     high:[
-      {id:"vH1",name:"숙주 지배체",tier:"high",atk:9,hp:48,mark:false,effect:"강제 공격 대상 / 받은 피해의 30% 반사",img:VIRUS_IMAGES.high[1]},
-      {id:"vH2",name:"신경 오염체",tier:"high",atk:14,hp:34,mark:true, effect:"플레이어 공격 시 표식(2턴) 부여",img:VIRUS_IMAGES.high[0]},
+      {id:"vH1",name:"숙주 지배체",tier:"high",atk:9,hp:48,mark:false,effect:"강제 공격 대상 / 받은 피해의 30% 반사",img:VIRUS_IMAGES.high[0]},
+      {id:"vH2",name:"신경 오염체",tier:"high",atk:14,hp:34,mark:true, effect:"플레이어 공격 시 표식(2턴) 부여",img:VIRUS_IMAGES.high[1]},
       {id:"vH3",name:"재앙 군체핵",tier:"high",atk:10,hp:52,mark:false,effect:"효과 없음 (초고체력)",img:VIRUS_IMAGES.high[2]},
     ],
   },
   vaccine:{
     low:[
-      {id:"cL1",name:"주사병",tier:"low",atk:6,hp:18,mark:false,effect:"효과 없음",img:""},
-      {id:"cL2",name:"소독 요원",tier:"low",atk:7,hp:16,mark:false,effect:"효과 없음",img:""},
-      {id:"cL3",name:"방역 드론",tier:"low",atk:5,hp:20,mark:false,effect:"효과 없음",img:""},
+      {id:"cL1",name:"주사병",tier:"low",atk:6,hp:18,mark:false,effect:"효과 없음",img:VAX_IMAGES.low[0]},
+      {id:"cL2",name:"소독 요원",tier:"low",atk:7,hp:16,mark:false,effect:"효과 없음",img:VAX_IMAGES.low[1]},
+      {id:"cL3",name:"방역 드론",tier:"low",atk:5,hp:20,mark:false,effect:"효과 없음",img:VAX_IMAGES.low[2]},
     ],
     mid:[
-      {id:"cM1",name:"항체 방패병",tier:"mid",atk:7,hp:30,mark:false,effect:"효과 없음(탱커)",img:""},
-      {id:"cM2",name:"면역 수호자",tier:"mid",atk:10,hp:24,mark:false,effect:"효과 없음",img:""},
-      {id:"cM3",name:"정화 공병",tier:"mid",atk:9,hp:26,mark:false,effect:"효과 없음",img:""},
+      {id:"cM1",name:"항체 방패병",tier:"mid",atk:7,hp:30,mark:false,effect:"효과 없음(탱커)",img:VAX_IMAGES.mid[0]},
+      {id:"cM2",name:"면역 수호자",tier:"mid",atk:10,hp:24,mark:false,effect:"효과 없음",img:VAX_IMAGES.mid[1]},
+      {id:"cM3",name:"정화 공병",tier:"mid",atk:9,hp:26,mark:false,effect:"효과 없음",img:VAX_IMAGES.mid[2]},
     ],
     high:[
-      {id:"cH1",name:"면역 사령관",tier:"high",atk:12,hp:44,mark:false,effect:"효과 없음",img:""},
-      {id:"cH2",name:"백신 배양체",tier:"high",atk:9,hp:52,mark:false,effect:"효과 없음(최고 체력)",img:""},
-      {id:"cH3",name:"항원 제압기",tier:"high",atk:14,hp:40,mark:false,effect:"효과 없음",img:""},
+      {id:"cH1",name:"면역 사령관",tier:"high",atk:12,hp:44,mark:false,effect:"효과 없음",img:VAX_IMAGES.high[0]},
+      {id:"cH2",name:"백신 배양체",tier:"high",atk:9,hp:52,mark:false,effect:"효과 없음(최고 체력)",img:VAX_IMAGES.high[1]},
+      {id:"cH3",name:"항원 제압기",tier:"high",atk:14,hp:40,mark:false,effect:"효과 없음",img:VAX_IMAGES.high[2]},
     ],
   }
 };
@@ -379,7 +385,8 @@ function cardNode(m, extra=""){
   const div=document.createElement("div");
   div.className="card";
   div.innerHTML=`
-    <img class="thumb" src="${(m.img&&m.img.trim())?m.img:fallbackImg}" alt="">
+    <img class="thumb" src="${(m.img&&m.img.trim())?m.img:fallbackImg}" alt=""
+         onerror="this.src='${fallbackImg}'">
     <div class="meta">
       <div class="name">${m.name}</div>
       <div class="stats">
