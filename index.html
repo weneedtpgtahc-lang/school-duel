@@ -3,203 +3,911 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Virus vs Vaccine – Card UI</title>
-
+  <title>Virus vs Vaccine Duel (Online)</title>
   <style>
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans KR,sans-serif;
-      background:#0e1117;
-      color:#e5e7eb;
+    :root{
+      --bg:#0e1117;
+      --panel:#101826;
+      --card:#ffffff;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#ff2d2d;
+      --ok:#22c55e;
+      --line:rgba(255,255,255,.12);
+      --shadow:0 10px 30px rgba(0,0,0,.35);
     }
-    .wrap{max-width:1100px;margin:0 auto;padding:20px;}
-    h1{margin:10px 0 16px;text-align:center;}
-
-    .tabs{
-      display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
-      margin:10px 0 18px;
-    }
-    .tab{
-      padding:10px 14px;
-      border-radius:12px;
-      border:2px solid #fff;
-      background:transparent;
-      color:#fff;
-      font-weight:900;
-      cursor:pointer;
-    }
-    .tab.on{
-      background:#fff;
-      color:#000;
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-      gap:16px;
-    }
-
-    .card{
-      background:#fff;
-      color:#000; /* ✅ 텍스트 검정 */
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans KR,sans-serif;background:var(--bg);color:var(--text);}
+    button,input,select{font:inherit}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px;}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+    .sp{justify-content:space-between}
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
       border-radius:16px;
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+    .title{font-weight:1000;font-size:20px;margin:0 0 8px;}
+    .btn{
+      border:1px solid var(--line);
+      background:#0b1220;
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:900;
+    }
+    .btn.primary{background:var(--accent);border-color:rgba(0,0,0,.25);color:#fff;}
+    .btn.ok{background:var(--ok);border-color:rgba(0,0,0,.25);color:#04110a;}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .input{
+      background:#0b1220;color:var(--text);
+      border:1px solid var(--line);
+      padding:10px 12px;border-radius:12px;min-width:180px;
+    }
+    .badge{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:6px 10px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(0,0,0,.18);font-weight:900;
+    }
+    .muted{color:var(--muted);font-weight:700}
+
+    /* game layout */
+    .grid2{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    @media (max-width: 980px){
+      .grid2{grid-template-columns:1fr;}
+    }
+
+    .board{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    .playerBar{
+      display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+    }
+    .hpBox{
+      display:flex;gap:10px;align-items:center;
+      padding:10px 12px;border-radius:14px;border:1px solid var(--line);
+      background:rgba(0,0,0,.18);
+      cursor:pointer;
+      user-select:none;
+    }
+    .hpVal{font-weight:1000;font-size:18px}
+    .manaVal{font-weight:1000}
+    .turnTag{font-weight:1000}
+    .who{
+      font-weight:1000;
+      padding:6px 10px;border-radius:10px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.18);
+    }
+
+    .fieldWrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .slot{
+      border:1px dashed rgba(255,255,255,.25);
+      border-radius:14px;
+      min-height:150px;
+      padding:10px;
+      background:rgba(0,0,0,.14);
+      display:flex;flex-direction:column;gap:8px;justify-content:space-between;
+    }
+    .slot.locked{opacity:.45}
+    .slotHead{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-weight:900}
+    .mini{font-size:12px}
+    .monsterCard{
+      background:var(--card);
+      color:#000;
+      border-radius:14px;
       overflow:hidden;
       border:3px solid rgba(0,0,0,.18);
-      box-shadow:0 10px 30px rgba(0,0,0,.3);
+      box-shadow:0 10px 24px rgba(0,0,0,.22);
       cursor:pointer;
-      transition:.12s transform, .12s border-color, .12s outline;
+      user-select:none;
     }
-    .card:hover{transform:translateY(-3px);}
-    .card.selected{
-      border-color:#ff2d2d;
-      outline:5px solid rgba(255,45,45,.25);
-    }
-
+    .monsterCard.sel{border-color:var(--accent);outline:5px solid rgba(255,45,45,.25);}
     .thumb{
-      height:150px;
-      display:flex; align-items:center; justify-content:center;
+      height:105px;
+      display:flex;align-items:center;justify-content:center;
       background:linear-gradient(180deg,#f7fbff,#e6f4ff);
     }
-    .thumb img{max-width:90%;max-height:90%;object-fit:contain;}
-
-    .meta{padding:12px;}
-    .name{font-weight:1000;font-size:16px;color:#000;}
-    .stats{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
+    .thumb img{max-width:92%;max-height:92%;object-fit:contain}
+    .meta{padding:10px 10px 12px}
+    .name{font-weight:1000}
+    .stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
     .pill{
-      padding:4px 8px;border-radius:999px;
-      font-size:12px;font-weight:900;
+      padding:3px 8px;border-radius:999px;font-size:12px;font-weight:1000;
       background:#f3f4f6;border:1px solid #d1d5db;color:#000;
     }
-    .effect{margin-top:8px;font-size:12px;color:#000;opacity:.75;line-height:1.35;}
-
-    .footer{
-      margin-top:18px;
-      text-align:center;
-      font-weight:900;
+    .eff{margin-top:7px;font-size:12px;opacity:.75;line-height:1.35}
+    .hand{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap:10px;
+      margin-top:10px;
     }
 
-    .warn{
-      margin:12px auto 0;
-      max-width:760px;
-      background:#fff3cd;
-      color:#000;
-      border:2px solid rgba(0,0,0,.2);
-      border-radius:12px;
-      padding:10px 12px;
-      font-weight:900;
-      display:none;
+    .side .panel{margin-bottom:12px}
+    .log{
+      max-height:260px;overflow:auto;
+      font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size:12px;
+      background:rgba(0,0,0,.25);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+      white-space:pre-wrap;
     }
+    .danger{color:#fecaca}
+    .oktext{color:#bbf7d0}
   </style>
 </head>
-
 <body>
-  <div class="wrap">
-    <h1>🃏 카드 UI (바이러스 / 백신)</h1>
-
-    <div class="tabs">
-      <button id="tabVirus" class="tab on">🦠 바이러스</button>
-      <button id="tabVax" class="tab">💉 백신</button>
+<div class="wrap">
+  <div class="panel">
+    <div class="row sp">
+      <div>
+        <div class="title">Virus vs Vaccine Duel (온라인)</div>
+        <div class="muted">방 코드로 2명이 들어오면 진영 선택 → 방장 시작 → 게임 UI 생성</div>
+      </div>
+      <div class="row">
+        <span class="badge" id="connBadge">연결: -</span>
+        <span class="badge" id="roomBadge">방: -</span>
+        <span class="badge" id="meBadge">내 자리: -</span>
+      </div>
     </div>
 
-    <div id="warn" class="warn"></div>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn primary" id="btnCreate">방 만들기</button>
+      <input class="input" id="inCode" placeholder="코드 입력 (예: ABC12)" />
+      <button class="btn" id="btnJoin">참가</button>
 
-    <div id="cardGrid" class="grid"></div>
+      <span style="width:10px"></span>
 
-    <div id="selectedText" class="footer">선택된 카드: 없음</div>
+      <select class="input" id="selFaction">
+        <option value="">진영 선택</option>
+        <option value="virus">🦠 바이러스</option>
+        <option value="vax">💉 백신</option>
+      </select>
+      <button class="btn ok" id="btnPick" disabled>진영 확정</button>
+      <button class="btn primary" id="btnStart" disabled>게임 시작(방장)</button>
+    </div>
   </div>
 
-  <!-- ✅ 1) 몬스터 데이터 먼저 로드 (전역 변수) -->
-  <script src="assets/data/monsters.js"></script>
+  <div id="gameRoot" style="display:none" class="grid2">
+    <div class="board">
+      <div class="panel">
+        <div class="playerBar">
+          <div class="row">
+            <span class="who" id="turnWho">-</span>
+            <span class="badge">턴 <span class="turnTag" id="turnNum">-</span>/15</span>
+          </div>
+          <div class="row">
+            <div class="hpBox" id="p1HPBox" title="(공격할 때) 상대 HP를 클릭하면 직접 공격">
+              <span>플1 HP</span><span class="hpVal" id="p1HP">100</span>
+              <span class="badge">DR <span id="p1DR">0</span>%</span>
+            </div>
+            <div class="hpBox" id="p2HPBox">
+              <span>플2 HP</span><span class="hpVal" id="p2HP">100</span>
+              <span class="badge">DR <span id="p2DR">0</span>%</span>
+            </div>
+          </div>
+          <div class="row">
+            <span class="badge">내 마나 <span class="manaVal" id="myMana">0</span></span>
+            <span class="badge">카드 사용 <span id="myUse">0</span>/2</span>
+            <span class="badge">공격 <span id="myAtk">0</span>/2</span>
+            <button class="btn" id="btnEnd" disabled>턴 종료</button>
+          </div>
+        </div>
+      </div>
 
-  <!-- ✅ 2) UI 렌더 -->
-  <script>
-    const warn = document.getElementById("warn");
-    const grid = document.getElementById("cardGrid");
-    const selectedText = document.getElementById("selectedText");
+      <div class="panel">
+        <div class="row sp">
+          <div class="title" style="margin:0">필드</div>
+          <div class="muted mini">내 필드 4칸 / 상대 필드 4칸 (죽은 슬롯은 내 다음 턴까지 잠김)</div>
+        </div>
 
-    // === 데이터 로딩 검증 ===
-    function showWarn(msg){
-      warn.style.display = "block";
-      warn.textContent = msg;
+        <div style="margin-top:10px">
+          <div class="muted" style="font-weight:1000;margin-bottom:6px;">상대 필드</div>
+          <div class="fieldWrap" id="enemyField"></div>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="muted" style="font-weight:1000;margin-bottom:6px;">내 필드</div>
+          <div class="fieldWrap" id="myField"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row sp">
+          <div class="title" style="margin:0">내 손패</div>
+          <div class="muted mini">카드 클릭 → 내 빈 슬롯 클릭으로 소환 / 내 몬스터 클릭 → 공격 대상 클릭</div>
+        </div>
+        <div class="hand" id="hand"></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="panel">
+        <div class="title">상점</div>
+        <div class="row">
+          <select class="input" id="shopTier">
+            <option value="low">하급 (2)</option>
+            <option value="mid">중급 (5)</option>
+            <option value="high">상급 (9)</option>
+          </select>
+          <button class="btn ok" id="btnBuy" disabled>랜덤 구매(턴당 1회)</button>
+        </div>
+        <div class="muted mini" style="margin-top:8px;">※ 구매는 내 턴에만 가능 / 구매한 카드는 손패에 추가</div>
+      </div>
+
+      <div class="panel">
+        <div class="title">조작 상태</div>
+        <div class="muted mini" id="modeText">-</div>
+      </div>
+
+      <div class="panel">
+        <div class="title">로그</div>
+        <div class="log" id="log"></div>
+      </div>
+
+      <div class="panel" id="endPanel" style="display:none">
+        <div class="title">게임 종료</div>
+        <div id="endText" style="font-weight:1000"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  // ===== Firebase (Firestore) =====
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import {
+    getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  // ★ 여기에 네 firebaseConfig 붙여넣기 ★
+  const firebaseConfig = {
+    apiKey: "PASTE_YOURS",
+    authDomain: "PASTE_YOURS",
+    projectId: "PASTE_YOURS",
+    storageBucket: "PASTE_YOURS",
+    messagingSenderId: "PASTE_YOURS",
+    appId: "PASTE_YOURS",
+    measurementId: "PASTE_YOURS"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ===== Assets / Monsters =====
+  // (스탯은 나중에 조정 가능. 지금은 “돌아가는 구조” 우선)
+  const virusMonsters = [
+    {id:"virus_low_1", tier:"low",  name:"침투 포자",  atk:7,  hp:16, effect:"없음", img:"assets/virus/virus_low_1.png"},
+    {id:"virus_low_2", tier:"low",  name:"복제 세포",  atk:6,  hp:18, effect:"없음", img:"assets/virus/virus_low_2.png"},
+    {id:"virus_low_3", tier:"low",  name:"점액 분열체",atk:8,  hp:14, effect:"플레이어 공격 시 표식(2턴)", img:"assets/virus/virus_low_3.png"},
+    {id:"virus_mid_1", tier:"mid",  name:"감염 확산체",atk:6,  hp:32, effect:"없음", img:"assets/virus/virus_mid_1.png"},
+    {id:"virus_mid_2", tier:"mid",  name:"변이 돌격체",atk:11, hp:22, effect:"없음", img:"assets/virus/virus_mid_2.png"},
+    {id:"virus_mid_3", tier:"mid",  name:"은폐 잠복체",atk:8,  hp:28, effect:"플레이어 공격 시 표식(2턴)", img:"assets/virus/virus_mid_3.png"},
+    {id:"virus_high_1",tier:"high", name:"숙주 지배체",atk:9,  hp:48, effect:"(단순화) 직접 공격 시 표식(2턴)", img:"assets/virus/virus_high_1.png"},
+    {id:"virus_high_2",tier:"high", name:"신경 오염체",atk:14, hp:34, effect:"플레이어 공격 시 표식(2턴)", img:"assets/virus/virus_high_2.png"},
+    {id:"virus_high_3",tier:"high", name:"재앙 군체핵",atk:10, hp:52, effect:"없음", img:"assets/virus/virus_high_3.png"},
+  ];
+
+  const vaxMonsters = [
+    {id:"vax_low_1", tier:"low",  name:"주사병",     atk:6,  hp:18, effect:"없음", img:"assets/vax/vax_low_1.png"},
+    {id:"vax_low_2", tier:"low",  name:"소독 요원",   atk:7,  hp:16, effect:"없음", img:"assets/vax/vax_low_2.png"},
+    {id:"vax_low_3", tier:"low",  name:"방역 드론",   atk:5,  hp:20, effect:"없음", img:"assets/vax/vax_low_3.png"},
+    {id:"vax_mid_1", tier:"mid",  name:"항체 방패병", atk:7,  hp:30, effect:"없음", img:"assets/vax/vax_mid_1.png"},
+    {id:"vax_mid_2", tier:"mid",  name:"면역 수호자", atk:10, hp:24, effect:"없음", img:"assets/vax/vax_mid_2.png"},
+    {id:"vax_mid_3", tier:"mid",  name:"정화 공병",   atk:9,  hp:26, effect:"없음", img:"assets/vax/vax_mid_3.png"},
+    {id:"vax_high_1",tier:"high", name:"면역 사령관", atk:12, hp:44, effect:"없음", img:"assets/vax/vax_high_1.png"},
+    {id:"vax_high_2",tier:"high", name:"백신 배양체", atk:9,  hp:52, effect:"없음", img:"assets/vax/vax_high_2.png"},
+    {id:"vax_high_3",tier:"high", name:"항원 제압기", atk:14, hp:40, effect:"없음", img:"assets/vax/vax_high_3.png"},
+  ];
+
+  const COST = { low:2, mid:5, high:9 };
+
+  // ===== UI helpers =====
+  const $ = (id)=>document.getElementById(id);
+  const logEl = $("log");
+  function log(msg, kind=""){
+    const line = `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+    logEl.textContent += line;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function genCode(){
+    const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let s="";
+    for(let i=0;i<5;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
+
+  // ===== Room / identity =====
+  let roomCode = null;
+  let roomRef = null;
+  let unsub = null;
+
+  // local identity per browser
+  const myId = (() => {
+    const k="vvv_id";
+    let v=localStorage.getItem(k);
+    if(!v){ v = crypto.randomUUID(); localStorage.setItem(k,v); }
+    return v;
+  })();
+  let mySeat = null; // 0 or 1
+  let lastState = null;
+
+  function setConn(text){ $("connBadge").textContent = `연결: ${text}`; }
+  function setRoom(text){ $("roomBadge").textContent = `방: ${text}`; }
+  function setMe(text){ $("meBadge").textContent = `내 자리: ${text}`; }
+
+  function canStart(state){
+    if(!state) return false;
+    const hostOk = state.hostId === myId;
+    const both = state.players?.length === 2 &&
+                 state.players[0]?.faction && state.players[1]?.faction;
+    return hostOk && both && state.phase === "lobby";
+  }
+
+  function myTurn(state){
+    return state.phase==="playing" && state.turnPlayer === mySeat;
+  }
+
+  function getPlayer(state, seat){ return state.players[seat]; }
+  function enemySeat(){ return mySeat===0?1:0; }
+
+  function playerDR(state, seat){
+    const p = getPlayer(state, seat);
+    const fieldCount = p.field.filter(s=>!!s.monster).length;
+    const base = (p.faction==="vax") ? 20 : 0;
+    const fromField = fieldCount * 20;
+    return Math.min(80, base + fromField); // 캡 (너무 커지지 않게)
+  }
+
+  function applyPlayerDamage(state, targetSeat, raw, sourceText){
+    const dr = playerDR(state, targetSeat);
+    const dmg = Math.max(0, Math.round(raw * (1 - dr/100)));
+    state.players[targetSeat].hp -= dmg;
+    log(`${sourceText} → 플레이어${targetSeat+1} 피해 ${dmg} (DR ${dr}%)`);
+  }
+
+  function checkEnd(state){
+    const p1=state.players[0].hp, p2=state.players[1].hp;
+    if(p1<=0 || p2<=0){
+      state.phase="ended";
+      state.winner = (p1===p2) ? "draw" : (p1>p2?0:1);
+      return;
+    }
+    if(state.turn > 15){
+      state.phase="ended";
+      state.winner = (p1===p2) ? "draw" : (p1>p2?0:1);
+      return;
+    }
+  }
+
+  // ===== Create / Join =====
+  async function createRoom(){
+    const code = genCode();
+    roomCode = code;
+    roomRef = doc(db, "rooms", code);
+
+    const init = {
+      code,
+      phase:"lobby", // lobby -> playing -> ended
+      hostId: myId,
+      createdAt: serverTimestamp(),
+      turn: 0,
+      turnPlayer: 0,
+      players: [
+        { id:null, faction:null, hp:100, mana:0, hand:[], field: makeField(), usedThisTurn:0, attackedThisTurn:0, boughtThisTurn:false, mark:0 },
+        { id:null, faction:null, hp:100, mana:0, hand:[], field: makeField(), usedThisTurn:0, attackedThisTurn:0, boughtThisTurn:false, mark:0 },
+      ],
+      logSeed: 0
+    };
+
+    await setDoc(roomRef, init);
+    setRoom(code);
+    log(`방 생성: ${code}`);
+    await joinRoom(code);
+  }
+
+  async function joinRoom(code){
+    roomCode = code.toUpperCase();
+    roomRef = doc(db, "rooms", roomCode);
+
+    const snap = await getDoc(roomRef);
+    if(!snap.exists()){
+      alert("방이 없어!");
+      return;
     }
 
-    if (typeof virusMonsters === "undefined" || typeof vaxMonsters === "undefined") {
-      showWarn("monsters.js를 못 읽었어. 경로가 assets/data/monsters.js 맞는지 확인해줘!");
-      console.error("virusMonsters/vaxMonsters undefined. monsters.js not loaded or path wrong.");
+    const state = snap.data();
+    const seats = state.players;
+
+    // find seat: already joined?
+    let seat = seats.findIndex(p=>p.id===myId);
+    if(seat === -1){
+      seat = seats.findIndex(p=>!p.id);
+      if(seat === -1){
+        alert("방이 꽉 찼어(2명)");
+        return;
+      }
+      seats[seat].id = myId;
+      await updateDoc(roomRef, { players: seats });
     }
 
-    let current = "virus";
-    let selectedId = null;
+    mySeat = seat;
+    setRoom(roomCode);
+    setMe(`플레이어${mySeat+1}`);
+    log(`참가 완료: 플레이어${mySeat+1}`);
 
-    function cardHTML(m){
-      const atk = (m.atk ?? "?");
-      const hp  = (m.hp ?? "?");
-      const effect = (m.effect && m.effect.trim()) ? m.effect : "효과 미정";
-      return `
-        <div class="card" data-id="${m.id}">
+    // subscribe
+    if(unsub) unsub();
+    unsub = onSnapshot(roomRef, (docSnap)=>{
+      const s = docSnap.data();
+      lastState = s;
+      renderAll(s);
+    });
+
+    $("btnPick").disabled = false;
+    setConn("OK");
+  }
+
+  function makeField(){
+    // 4 slots, each can be lockedUntilTurn (number)
+    return Array.from({length:4}, ()=>({ monster:null, lockedUntilTurn:0 }));
+  }
+
+  // ===== Faction pick & Start =====
+  async function pickFaction(){
+    if(!roomRef || mySeat===null) return;
+    const f = $("selFaction").value;
+    if(!f){ alert("진영 선택해"); return; }
+    const s = structuredClone(lastState);
+    s.players[mySeat].faction = f;
+    await updateDoc(roomRef, { players: s.players });
+    log(`진영 확정: ${f==="virus"?"바이러스":"백신"}`);
+  }
+
+  async function startGame(){
+    const s = structuredClone(lastState);
+    if(!canStart(s)){ alert("두 명 모두 진영 선택 후 방장만 시작 가능"); return; }
+
+    s.phase = "playing";
+    s.turn = 1;
+    s.turnPlayer = 0; // 랜덤 선공
+    // 랜덤 선공
+    s.turnPlayer = (Math.random()<0.5)?0:1;
+
+    // reset stats
+    for(let i=0;i<2;i++){
+      s.players[i].hp = 100;
+      s.players[i].mana = 0;
+      s.players[i].hand = [];
+      s.players[i].field = makeField();
+      s.players[i].usedThisTurn = 0;
+      s.players[i].attackedThisTurn = 0;
+      s.players[i].boughtThisTurn = false;
+      s.players[i].mark = 0;
+    }
+
+    // start turn grant mana + unlock slots if needed handled in beginTurn
+    beginTurn(s);
+
+    await updateDoc(roomRef, {
+      phase:s.phase, turn:s.turn, turnPlayer:s.turnPlayer, players:s.players
+    });
+    log("게임 시작!");
+  }
+
+  function beginTurn(state){
+    const seat = state.turnPlayer;
+    const p = state.players[seat];
+
+    // decrement mark on current player at their turn start? (표식 지속 턴)
+    if(p.mark > 0) p.mark -= 1;
+
+    // unlock slots whose lockedUntilTurn <= current turn
+    for(const slot of p.field){
+      if(slot.lockedUntilTurn && slot.lockedUntilTurn <= state.turn){
+        slot.lockedUntilTurn = 0;
+      }
+    }
+
+    p.mana += 3;
+    p.usedThisTurn = 0;
+    p.attackedThisTurn = 0;
+    p.boughtThisTurn = false;
+  }
+
+  async function endTurn(){
+    if(!myTurn(lastState)) return;
+    const s = structuredClone(lastState);
+
+    // check end conditions first
+    checkEnd(s);
+    if(s.phase==="ended"){
+      await updateDoc(roomRef, { phase:s.phase, winner:s.winner, players:s.players });
+      return;
+    }
+
+    // next turn
+    s.turn += 1;
+    s.turnPlayer = (s.turnPlayer===0)?1:0;
+    beginTurn(s);
+    checkEnd(s);
+
+    await updateDoc(roomRef, { turn:s.turn, turnPlayer:s.turnPlayer, phase:s.phase, winner:s.winner ?? null, players:s.players });
+    log(`턴 종료 → 다음 턴: 플레이어${s.turnPlayer+1}`);
+  }
+
+  // ===== Shop / Play / Attack state machine (UI) =====
+  let selectedHandIdx = null;
+  let selectedMySlot = null;
+  let selectedAttackerSlot = null;
+  let attackedThisTurnBy = new Set();
+
+  function resetLocalSelections(){
+    selectedHandIdx = null;
+    selectedMySlot = null;
+    selectedAttackerSlot = null;
+    attackedThisTurnBy = new Set();
+    updateModeText();
+  }
+
+  function updateModeText(){
+    let t = "";
+    if(selectedHandIdx!==null) t = "카드 선택됨 → 내 빈 슬롯 클릭으로 소환";
+    else if(selectedAttackerSlot!==null) t = "공격자 선택됨 → 상대 몬스터/상대 HP 클릭";
+    else t = "대기: 손패 클릭(소환) 또는 내 몬스터 클릭(공격)";
+    $("modeText").textContent = t;
+  }
+
+  function getPool(faction, tier){
+    const pool = (faction==="virus") ? virusMonsters : vaxMonsters;
+    return pool.filter(m=>m.tier===tier);
+  }
+
+  async function buyCard(){
+    if(!myTurn(lastState)) return;
+    const s = structuredClone(lastState);
+    const me = s.players[mySeat];
+
+    if(me.boughtThisTurn){ alert("이번 턴엔 이미 구매했어"); return; }
+
+    const tier = $("shopTier").value;
+    const cost = COST[tier];
+    if(me.mana < cost){ alert("마나 부족"); return; }
+
+    const pool = getPool(me.faction, tier);
+    const pick = pool[Math.floor(Math.random()*pool.length)];
+    me.mana -= cost;
+    me.hand.push({
+      refId: pick.id,
+      name: pick.name,
+      tier: pick.tier,
+      atk: pick.atk,
+      hp: pick.hp,
+      maxHp: pick.hp,
+      effect: pick.effect,
+      img: pick.img
+    });
+    me.boughtThisTurn = true;
+
+    await updateDoc(roomRef, { players: s.players });
+    log(`구매: ${tier.toUpperCase()} 1장 (${cost}) → ${pick.name}`);
+  }
+
+  async function playToSlot(slotIdx){
+    if(!myTurn(lastState)) return;
+    if(selectedHandIdx===null) return;
+
+    const s = structuredClone(lastState);
+    const me = s.players[mySeat];
+    if(me.usedThisTurn >= 2){ alert("이번 턴 카드 사용 2장 끝"); return; }
+
+    const slot = me.field[slotIdx];
+    if(slot.lockedUntilTurn && slot.lockedUntilTurn > s.turn){ alert("이 슬롯은 잠김"); return; }
+    if(slot.monster){ alert("이미 몬스터 있음"); return; }
+
+    const card = me.hand[selectedHandIdx];
+    // place monster
+    slot.monster = {
+      ...card,
+      curHp: card.hp,
+      owner: mySeat
+    };
+    // remove from hand
+    me.hand.splice(selectedHandIdx, 1);
+    me.usedThisTurn += 1;
+
+    selectedHandIdx = null;
+    await updateDoc(roomRef, { players: s.players });
+    log(`소환: 슬롯${slotIdx+1} ← ${slot.monster.name}`);
+  }
+
+  async function chooseAttacker(slotIdx){
+    if(!myTurn(lastState)) return;
+    const me = lastState.players[mySeat];
+    const slot = me.field[slotIdx];
+    if(!slot.monster){ return; }
+    if(me.attackedThisTurn >= 2){ alert("이번 턴 공격 2회 끝"); return; }
+    if(attackedThisTurnBy.has(slotIdx)){ alert("이 몬스터는 이미 공격함"); return; }
+    selectedAttackerSlot = slotIdx;
+    selectedHandIdx = null;
+    updateModeText();
+  }
+
+  function rawDamageWithMark(state, attacker, raw){
+    // 표식: "받는 피해 +20%" (단순/가시적)
+    // mark는 "플레이어에게" 붙는다.
+    const enemy = state.players[enemySeat()];
+    const marked = enemy.mark > 0;
+    return marked ? Math.round(raw * 1.2) : raw;
+  }
+
+  async function attackTarget(kind, idx){
+    if(!myTurn(lastState)) return;
+    if(selectedAttackerSlot===null) return;
+
+    const s = structuredClone(lastState);
+    const me = s.players[mySeat];
+    const en = s.players[enemySeat()];
+
+    if(me.attackedThisTurn >= 2){ alert("이번 턴 공격 2회 끝"); return; }
+    if(attackedThisTurnBy.has(selectedAttackerSlot)){ alert("이 몬스터는 이미 공격함"); return; }
+
+    const aSlot = me.field[selectedAttackerSlot];
+    if(!aSlot.monster){ selectedAttackerSlot=null; updateModeText(); return; }
+    const atk = aSlot.monster.atk;
+
+    if(kind==="enemySlot"){
+      const tSlot = en.field[idx];
+      if(!tSlot.monster){ alert("대상 몬스터 없음"); return; }
+      tSlot.monster.curHp -= atk;
+      log(`${aSlot.monster.name} → 상대 몬스터(${tSlot.monster.name}) ${atk} 피해`);
+
+      // death
+      if(tSlot.monster.curHp <= 0){
+        log(`처치: ${tSlot.monster.name}`);
+        tSlot.monster = null;
+        // lock until enemy's next turn start => when enemy turn begins, their state.turn will be (current turn + 1 if they are next, else +2)
+        // simplest: lock until (s.turn + 2) always on owner's field, but more accurate:
+        // if enemy is next player: their next turn is s.turn+1; else s.turn+2. Since turns alternate, enemy next turn is s.turn+1.
+        tSlot.lockedUntilTurn = s.turn + 1; // enemy's next turn number
+      }
+    }
+
+    if(kind==="enemyPlayer"){
+      let raw = atk;
+      // mark bonus
+      raw = rawDamageWithMark(s, aSlot.monster, raw);
+      applyPlayerDamage(s, enemySeat(), raw, `${aSlot.monster.name} 직접 공격`);
+
+      // virus mark on direct attack if monster has that text
+      const hasMark = (aSlot.monster.effect || "").includes("표식");
+      if(hasMark && me.faction==="virus"){
+        en.mark = 2; // 2턴 지속
+        log(`표식 부여(2턴): 플레이어${enemySeat()+1}`);
+      }
+    }
+
+    me.attackedThisTurn += 1;
+    attackedThisTurnBy.add(selectedAttackerSlot);
+    selectedAttackerSlot = null;
+    updateModeText();
+
+    checkEnd(s);
+    await updateDoc(roomRef, { players: s.players, phase:s.phase, winner:s.winner ?? null });
+  }
+
+  // ===== Render =====
+  function renderAll(state){
+    // lobby controls
+    $("btnStart").disabled = !canStart(state);
+    $("btnPick").disabled = !(roomRef && mySeat!==null);
+
+    // show game only when playing/ended
+    const showGame = (state.phase==="playing" || state.phase==="ended");
+    $("gameRoot").style.display = showGame ? "grid" : "none";
+
+    setRoom(state.code || roomCode || "-");
+
+    if(!showGame){
+      $("btnBuy").disabled = true;
+      $("btnEnd").disabled = true;
+      return;
+    }
+
+    // top info
+    $("turnNum").textContent = String(state.turn);
+    $("turnWho").textContent = (state.turnPlayer===0?"플레이어1":"플레이어2") + " 턴";
+    $("p1HP").textContent = state.players[0].hp;
+    $("p2HP").textContent = state.players[1].hp;
+
+    $("p1DR").textContent = String(playerDR(state,0));
+    $("p2DR").textContent = String(playerDR(state,1));
+
+    const me = state.players[mySeat];
+    $("myMana").textContent = String(me.mana);
+    $("myUse").textContent = String(me.usedThisTurn);
+    $("myAtk").textContent = String(me.attackedThisTurn);
+
+    $("btnBuy").disabled = !myTurn(state) || me.boughtThisTurn;
+    $("btnEnd").disabled = !myTurn(state);
+
+    // end panel
+    if(state.phase==="ended"){
+      $("endPanel").style.display = "block";
+      const w = state.winner;
+      $("endText").textContent =
+        (w==="draw") ? "무승부" : (w===mySeat ? "승리!" : "패배...");
+    } else {
+      $("endPanel").style.display = "none";
+    }
+
+    // fields
+    renderField(state);
+    renderHand(state);
+
+    // click targets for direct attack
+    // (내 턴일 때만 작동)
+    $("p1HPBox").onclick = ()=>{
+      if(!myTurn(state)) return;
+      if(selectedAttackerSlot===null) return;
+      // if p1 is enemy?
+      const targetSeat = 0;
+      if(targetSeat === enemySeat()) attackTarget("enemyPlayer");
+    };
+    $("p2HPBox").onclick = ()=>{
+      if(!myTurn(state)) return;
+      if(selectedAttackerSlot===null) return;
+      const targetSeat = 1;
+      if(targetSeat === enemySeat()) attackTarget("enemyPlayer");
+    };
+
+    // ensure mode text
+    updateModeText();
+  }
+
+  function slotHTML(slot, label, clickable){
+    const locked = slot.lockedUntilTurn && lastState && lastState.turn < slot.lockedUntilTurn;
+    const cls = "slot" + (locked ? " locked" : "");
+    const head = `
+      <div class="slotHead">
+        <span>${label}</span>
+        <span class="mini">${locked ? `잠김(~${slot.lockedUntilTurn})` : (slot.monster?"전투중":"빈칸")}</span>
+      </div>
+    `;
+
+    if(!slot.monster){
+      return `<div class="${cls}" data-empty="${clickable?1:0}">${head}<div class="muted mini">${clickable? "여기를 클릭하면 소환" : ""}</div></div>`;
+    }
+
+    const m = slot.monster;
+    return `
+      <div class="${cls}" data-has="1">
+        ${head}
+        <div class="monsterCard" data-monster="1">
           <div class="thumb">
-            <img src="${m.img}" alt="${m.name}"
-                 onerror="this.style.display='none'; this.parentNode.textContent='(이미지 없음)';">
+            <img src="${m.img}" alt="${m.name}" onerror="this.style.display='none'; this.parentNode.textContent='(이미지 없음)';">
           </div>
           <div class="meta">
             <div class="name">${m.name}</div>
             <div class="stats">
-              <span class="pill">⚔ ${atk}</span>
-              <span class="pill">❤ ${hp}</span>
+              <span class="pill">⚔ ${m.atk}</span>
+              <span class="pill">❤ ${m.curHp}</span>
               <span class="pill">${m.tier.toUpperCase()}</span>
             </div>
-            <div class="effect">${effect}</div>
+            <div class="eff">${m.effect || "없음"}</div>
           </div>
         </div>
-      `;
-    }
+      </div>
+    `;
+  }
 
-    function render(){
-      warn.style.display = "none";
-      const list = (current === "virus") ? virusMonsters : vaxMonsters;
+  function renderField(state){
+    const me = state.players[mySeat];
+    const en = state.players[enemySeat()];
 
-      if (!Array.isArray(list)) {
-        showWarn("몬스터 데이터가 배열이 아니야. monsters.js 내용을 확인해줘!");
-        console.error("list is not array", list);
-        return;
-      }
+    const myField = $("myField");
+    const enemyField = $("enemyField");
 
-      grid.innerHTML = list.map(cardHTML).join("");
+    myField.innerHTML = me.field.map((s,i)=>slotHTML(s, `내 슬롯 ${i+1}`, true)).join("");
+    enemyField.innerHTML = en.field.map((s,i)=>slotHTML(s, `상대 슬롯 ${i+1}`, false)).join("");
 
-      grid.querySelectorAll(".card").forEach(el=>{
-        el.addEventListener("click", ()=>{
-          selectedId = el.dataset.id;
-          grid.querySelectorAll(".card").forEach(x=>x.classList.remove("selected"));
-          el.classList.add("selected");
+    // bind my slots
+    [...myField.children].forEach((slotEl, idx)=>{
+      slotEl.onclick = ()=>{
+        if(!myTurn(lastState)) return;
 
-          const picked = list.find(m=>m.id===selectedId);
-          selectedText.textContent = "선택된 카드: " + (picked ? picked.name : selectedId);
-        });
-      });
+        // if hand selected -> summon
+        if(selectedHandIdx!==null){
+          playToSlot(idx);
+          return;
+        }
+        // if monster exists -> choose attacker
+        const s = lastState.players[mySeat].field[idx];
+        if(s.monster){
+          chooseAttacker(idx);
+          // UI highlight is done by rerender on snapshot
+        }
+      };
 
-      selectedText.textContent = "선택된 카드: 없음";
-      selectedId = null;
-    }
+      // highlight attacker
+      const isAtt = (selectedAttackerSlot===idx);
+      const card = slotEl.querySelector(".monsterCard");
+      if(card && isAtt) card.classList.add("sel");
+    });
 
-    // 탭
-    const tabVirus = document.getElementById("tabVirus");
-    const tabVax = document.getElementById("tabVax");
+    // bind enemy targets
+    [...enemyField.children].forEach((slotEl, idx)=>{
+      slotEl.onclick = ()=>{
+        if(!myTurn(lastState)) return;
+        if(selectedAttackerSlot===null) return;
+        attackTarget("enemySlot", idx);
+      };
+    });
+  }
 
-    tabVirus.onclick = ()=>{
-      current = "virus";
-      tabVirus.classList.add("on");
-      tabVax.classList.remove("on");
-      render();
-    };
-    tabVax.onclick = ()=>{
-      current = "vax";
-      tabVax.classList.add("on");
-      tabVirus.classList.remove("on");
-      render();
-    };
+  function renderHand(state){
+    const handEl = $("hand");
+    const me = state.players[mySeat];
 
-    // 초기 렌더
-    render();
-  </script>
+    handEl.innerHTML = me.hand.map((c,idx)=>`
+      <div class="monsterCard ${selectedHandIdx===idx?"sel":""}" data-hand="${idx}">
+        <div class="thumb">
+          <img src="${c.img}" alt="${c.name}" onerror="this.style.display='none'; this.parentNode.textContent='(이미지 없음)';">
+        </div>
+        <div class="meta">
+          <div class="name">${c.name}</div>
+          <div class="stats">
+            <span class="pill">⚔ ${c.atk}</span>
+            <span class="pill">❤ ${c.hp}</span>
+            <span class="pill">${c.tier.toUpperCase()}</span>
+          </div>
+          <div class="eff">${c.effect || "없음"}</div>
+        </div>
+      </div>
+    `).join("");
+
+    // bind click
+    [...handEl.children].forEach((el)=>{
+      el.onclick = ()=>{
+        if(!myTurn(lastState)) return;
+        const idx = Number(el.getAttribute("data-hand"));
+        selectedHandIdx = (selectedHandIdx===idx) ? null : idx;
+        selectedAttackerSlot = null;
+        updateModeText();
+        renderAll(lastState);
+      };
+    });
+  }
+
+  // ===== Buttons =====
+  $("btnCreate").onclick = ()=>createRoom();
+  $("btnJoin").onclick = ()=>joinRoom($("inCode").value.trim());
+  $("btnPick").onclick = ()=>pickFaction();
+  $("btnStart").onclick = ()=>startGame();
+  $("btnBuy").onclick = ()=>buyCard();
+  $("btnEnd").onclick = ()=>endTurn();
+
+  setConn("대기");
+  setRoom("-");
+  setMe("-");
+  updateModeText();
+
+  // enable start button reactively
+  // (onSnapshot에서 renderAll이 해줌)
+</script>
 </body>
 </html>
