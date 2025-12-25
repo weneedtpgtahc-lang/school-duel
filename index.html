@@ -1,159 +1,205 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Virus Duel – Card UI</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Virus vs Vaccine – Card UI</title>
 
-<style>
-  body{
-    margin:0;
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans KR,sans-serif;
-    background:#0e1117;
-    color:#e5e7eb;
-  }
+  <style>
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans KR,sans-serif;
+      background:#0e1117;
+      color:#e5e7eb;
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:20px;}
+    h1{margin:10px 0 16px;text-align:center;}
 
-  .wrap{
-    max-width:1100px;
-    margin:0 auto;
-    padding:24px;
-  }
+    .tabs{
+      display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+      margin:10px 0 18px;
+    }
+    .tab{
+      padding:10px 14px;
+      border-radius:12px;
+      border:2px solid #fff;
+      background:transparent;
+      color:#fff;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .tab.on{
+      background:#fff;
+      color:#000;
+    }
 
-  h1{
-    text-align:center;
-    margin-bottom:20px;
-  }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:16px;
+    }
 
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-    gap:16px;
-  }
+    .card{
+      background:#fff;
+      color:#000; /* ✅ 텍스트 검정 */
+      border-radius:16px;
+      overflow:hidden;
+      border:3px solid rgba(0,0,0,.18);
+      box-shadow:0 10px 30px rgba(0,0,0,.3);
+      cursor:pointer;
+      transition:.12s transform, .12s border-color, .12s outline;
+    }
+    .card:hover{transform:translateY(-3px);}
+    .card.selected{
+      border-color:#ff2d2d;
+      outline:5px solid rgba(255,45,45,.25);
+    }
 
-  .card{
-    background:#ffffff;
-    color:#000000;
-    border-radius:16px;
-    overflow:hidden;
-    border:3px solid rgba(0,0,0,.2);
-    box-shadow:0 10px 30px rgba(0,0,0,.3);
-    cursor:pointer;
-    transition:.15s;
-  }
+    .thumb{
+      height:150px;
+      display:flex; align-items:center; justify-content:center;
+      background:linear-gradient(180deg,#f7fbff,#e6f4ff);
+    }
+    .thumb img{max-width:90%;max-height:90%;object-fit:contain;}
 
-  .card:hover{
-    transform:translateY(-3px);
-  }
+    .meta{padding:12px;}
+    .name{font-weight:1000;font-size:16px;color:#000;}
+    .stats{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
+    .pill{
+      padding:4px 8px;border-radius:999px;
+      font-size:12px;font-weight:900;
+      background:#f3f4f6;border:1px solid #d1d5db;color:#000;
+    }
+    .effect{margin-top:8px;font-size:12px;color:#000;opacity:.75;line-height:1.35;}
 
-  .card.selected{
-    border-color:#ff2d2d;
-    outline:5px solid rgba(255,45,45,.25);
-  }
+    .footer{
+      margin-top:18px;
+      text-align:center;
+      font-weight:900;
+    }
 
-  .thumb{
-    height:150px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:linear-gradient(180deg,#f7fbff,#e6f4ff);
-  }
-
-  .thumb img{
-    max-width:90%;
-    max-height:90%;
-    object-fit:contain;
-  }
-
-  .meta{
-    padding:12px;
-  }
-
-  .name{
-    font-weight:1000;
-    font-size:16px;
-  }
-
-  .stats{
-    display:flex;
-    gap:8px;
-    margin-top:6px;
-    flex-wrap:wrap;
-  }
-
-  .pill{
-    padding:4px 8px;
-    border-radius:999px;
-    font-size:12px;
-    font-weight:900;
-    background:#f3f4f6;
-    border:1px solid #d1d5db;
-  }
-
-  .effect{
-    margin-top:8px;
-    font-size:12px;
-    opacity:.7;
-  }
-
-  .footer{
-    margin-top:20px;
-    text-align:center;
-    font-weight:900;
-  }
-</style>
+    .warn{
+      margin:12px auto 0;
+      max-width:760px;
+      background:#fff3cd;
+      color:#000;
+      border:2px solid rgba(0,0,0,.2);
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:900;
+      display:none;
+    }
+  </style>
 </head>
 
 <body>
-<div class="wrap">
-  <h1>🦠 바이러스 몬스터 카드</h1>
+  <div class="wrap">
+    <h1>🃏 카드 UI (바이러스 / 백신)</h1>
 
-  <div id="cardGrid" class="grid"></div>
+    <div class="tabs">
+      <button id="tabVirus" class="tab on">🦠 바이러스</button>
+      <button id="tabVax" class="tab">💉 백신</button>
+    </div>
 
-  <div class="footer" id="selectedText">
-    선택된 카드: 없음
+    <div id="warn" class="warn"></div>
+
+    <div id="cardGrid" class="grid"></div>
+
+    <div id="selectedText" class="footer">선택된 카드: 없음</div>
   </div>
-</div>
 
-<script type="module">
-  import { virusMonsters } from "./assets/data/monsters.js";
+  <!-- ✅ 1) 몬스터 데이터 먼저 로드 (전역 변수) -->
+  <script src="assets/data/monsters.js"></script>
 
-  const grid = document.getElementById("cardGrid");
-  const selectedText = document.getElementById("selectedText");
-  let selectedId = null;
+  <!-- ✅ 2) UI 렌더 -->
+  <script>
+    const warn = document.getElementById("warn");
+    const grid = document.getElementById("cardGrid");
+    const selectedText = document.getElementById("selectedText");
 
-  function render(){
-    grid.innerHTML = "";
-    virusMonsters.forEach(m=>{
-      const card = document.createElement("div");
-      card.className = "card";
+    // === 데이터 로딩 검증 ===
+    function showWarn(msg){
+      warn.style.display = "block";
+      warn.textContent = msg;
+    }
 
-      card.innerHTML = `
-        <div class="thumb">
-          <img src="${m.image}" alt="${m.name}">
-        </div>
-        <div class="meta">
-          <div class="name">${m.name}</div>
-          <div class="stats">
-            <span class="pill">⚔ ${m.atk ?? "?"}</span>
-            <span class="pill">❤ ${m.hp ?? "?"}</span>
-            <span class="pill">${m.tier.toUpperCase()}</span>
+    if (typeof virusMonsters === "undefined" || typeof vaxMonsters === "undefined") {
+      showWarn("monsters.js를 못 읽었어. 경로가 assets/data/monsters.js 맞는지 확인해줘!");
+      console.error("virusMonsters/vaxMonsters undefined. monsters.js not loaded or path wrong.");
+    }
+
+    let current = "virus";
+    let selectedId = null;
+
+    function cardHTML(m){
+      const atk = (m.atk ?? "?");
+      const hp  = (m.hp ?? "?");
+      const effect = (m.effect && m.effect.trim()) ? m.effect : "효과 미정";
+      return `
+        <div class="card" data-id="${m.id}">
+          <div class="thumb">
+            <img src="${m.img}" alt="${m.name}"
+                 onerror="this.style.display='none'; this.parentNode.textContent='(이미지 없음)';">
           </div>
-          <div class="effect">${m.effect || "효과 미정"}</div>
+          <div class="meta">
+            <div class="name">${m.name}</div>
+            <div class="stats">
+              <span class="pill">⚔ ${atk}</span>
+              <span class="pill">❤ ${hp}</span>
+              <span class="pill">${m.tier.toUpperCase()}</span>
+            </div>
+            <div class="effect">${effect}</div>
+          </div>
         </div>
       `;
+    }
 
-      card.onclick = ()=>{
-        selectedId = m.id;
-        document.querySelectorAll(".card").forEach(c=>c.classList.remove("selected"));
-        card.classList.add("selected");
-        selectedText.textContent = "선택된 카드: " + m.name;
-      };
+    function render(){
+      warn.style.display = "none";
+      const list = (current === "virus") ? virusMonsters : vaxMonsters;
 
-      grid.appendChild(card);
-    });
-  }
+      if (!Array.isArray(list)) {
+        showWarn("몬스터 데이터가 배열이 아니야. monsters.js 내용을 확인해줘!");
+        console.error("list is not array", list);
+        return;
+      }
 
-  render();
-</script>
+      grid.innerHTML = list.map(cardHTML).join("");
+
+      grid.querySelectorAll(".card").forEach(el=>{
+        el.addEventListener("click", ()=>{
+          selectedId = el.dataset.id;
+          grid.querySelectorAll(".card").forEach(x=>x.classList.remove("selected"));
+          el.classList.add("selected");
+
+          const picked = list.find(m=>m.id===selectedId);
+          selectedText.textContent = "선택된 카드: " + (picked ? picked.name : selectedId);
+        });
+      });
+
+      selectedText.textContent = "선택된 카드: 없음";
+      selectedId = null;
+    }
+
+    // 탭
+    const tabVirus = document.getElementById("tabVirus");
+    const tabVax = document.getElementById("tabVax");
+
+    tabVirus.onclick = ()=>{
+      current = "virus";
+      tabVirus.classList.add("on");
+      tabVax.classList.remove("on");
+      render();
+    };
+    tabVax.onclick = ()=>{
+      current = "vax";
+      tabVax.classList.add("on");
+      tabVirus.classList.remove("on");
+      render();
+    };
+
+    // 초기 렌더
+    render();
+  </script>
 </body>
 </html>
