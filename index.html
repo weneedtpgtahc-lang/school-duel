@@ -17,7 +17,7 @@
   .pill{padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--line);font-size:12px;color:var(--muted)}
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
 
-  /* ===== LOBBY (깔끔/가독성 최우선) ===== */
+  /* ===== LOBBY ===== */
   .lobbyWrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px}
   .lobbyCard{
     width:min(420px, 92vw);
@@ -76,7 +76,8 @@
   .laneTitle{display:flex;align-items:center;justify-content:space-between;margin:0 0 6px}
   .laneTitle span{color:var(--muted);font-size:12px}
 
-  .field{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px}
+  /* 상대 필드: 몬스터 4칸 + PLAYER 1칸 = 5칸 */
+  .field{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:10px}
   @media (max-width: 860px){ .field{grid-template-columns:repeat(2,minmax(160px,1fr))} }
 
   .slot{
@@ -119,7 +120,29 @@
     background:rgba(0,0,0,.72);backdrop-filter:blur(6px);
     border:1px solid rgba(255,255,255,.14);color:#fff;
     padding:10px 12px;border-radius:999px;font-size:13px;
+    z-index:60;
   }
+
+  /* ===== RESULT OVERLAY ===== */
+  .result{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.62);
+    backdrop-filter:blur(6px);
+    z-index:80;
+  }
+  .resultCard{
+    width:min(420px, 92vw);
+    background:#0c111c;
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 18px 60px rgba(0,0,0,.55);
+    text-align:center;
+  }
+  .resultTitle{font-size:22px;font-weight:900;margin-bottom:6px}
+  .resultSub{font-size:13px;color:#cbd5e1;line-height:1.5;margin-bottom:12px}
+  .resultBtns{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
 </style>
 </head>
 
@@ -192,7 +215,7 @@
 
   <div class="panel">
     <div class="laneTitle"><strong>상대 필드</strong>
-      <span id="opInfo" class="pill">표식:0</span>
+      <span id="opInfo" class="pill">-</span>
     </div>
     <div id="opField" class="field"></div>
   </div>
@@ -205,17 +228,23 @@
   </div>
 
   <div class="panel">
-    <div class="laneTitle"><strong>내 손패</strong><span id="handCount" class="pill">0/10</span></div>
+    <div class="laneTitle"><strong>내 손패</strong><span id="handCount" class="pill">0</span></div>
     <div id="hand" class="hand"></div>
-  </div>
-
-  <div class="panel">
-    <div class="laneTitle"><strong>디버그</strong><span class="pill">필요 없으면 지워도 됨</span></div>
-    <pre id="state" style="margin:0;background:#0b0f18;border:1px solid #24304a;color:#cfe1ff;border-radius:14px;padding:10px;max-height:220px;overflow:auto"></pre>
   </div>
 </div>
 
 <div id="toast" class="toast hide"></div>
+
+<!-- 결과 오버레이 -->
+<div id="result" class="result hide">
+  <div class="resultCard">
+    <div id="resultTitle" class="resultTitle">결과</div>
+    <div id="resultSub" class="resultSub">-</div>
+    <div class="resultBtns">
+      <button id="restartBtn" class="btn primary">새로 하기</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -241,56 +270,61 @@ const rid=()=>Math.random().toString(36).slice(2,8).toUpperCase();
 const uid=()=>Math.random().toString(36).slice(2,10);
 
 const COST={low:2,mid:5,high:9};
-const MAX_TURN=15;
+const MAX_TURN=20; // 20턴 끝나면 종료(21턴 진입 시)
 
-/* ===== ✅ 이미지 경로(네 폴더 구조에 맞춤) ===== */
+/* ===== 이미지 경로 ===== */
 const VIRUS_IMAGES = {
-  low:  ["assets/virus/virus_low1.png","assets/virus/virus_low2.png","assets/virus/virus_low3.png"],
-  mid:  ["assets/virus/virus_mid1.png","assets/virus/virus_mid2.png","assets/virus/virus_mid3.png"],
-  high: ["assets/virus/virus_high1.png","assets/virus/virus_high2.png","assets/virus/virus_high3.png"],
+  low:  ["assets/virus/virus_low_1.png","assets/virus/virus_low_2.png","assets/virus/virus_low_3.png"],
+  mid:  ["assets/virus/virus_mid_1.png","assets/virus/virus_mid_2.png","assets/virus/virus_mid_3.png"],
+  high: ["assets/virus/virus_high_1.png","assets/virus/virus_high_2.png","assets/virus/virus_high_3.png"],
 };
 const VAX_IMAGES = {
-  low:  ["assets/vaccine/vax_low1.png","assets/vaccine/vax_low2.png","assets/vaccine/vax_low3.png"],
-  mid:  ["assets/vaccine/vax_mid1.png","assets/vaccine/vax_mid2.png","assets/vaccine/vax_mid3.png"],
-  high: ["assets/vaccine/vax_high1.png","assets/vaccine/vax_high2.png","assets/vaccine/vax_high3.png"],
+  low:  ["assets/vaccine/vax_low_1.png","assets/vaccine/vax_low_2.png","assets/vaccine/vax_low_3.png"],
+  mid:  ["assets/vaccine/vax_mid_1.png","assets/vaccine/vax_mid_2.png","assets/vaccine/vax_mid_3.png"],
+  high: ["assets/vaccine/vax_high_1.png","assets/vaccine/vax_high_2.png","assets/vaccine/vax_high_3.png"],
 };
 
 const fallbackImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='360'%3E%3Crect width='100%25' height='100%25' fill='%231a2333'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23cfe1ff' font-size='22'%3ENo Image%3C/text%3E%3C/svg%3E";
 
-/* ===== 몬스터 데이터(확정표) ===== */
-const POOL={
+/* ===== 몬스터 데이터(최종) =====
+   표식: 몬스터에게만 / 유무만 / 2턴
+   - virus: applyMark(표식 부여), bonusVsMarked(표식 대상 추뎀)
+   - vaccine: healOn("end"|"hurt"|"attack"|"startAll"|"endAll"), healAmount
+   효과 없는 카드: effect 빈 문자열 -> UI에서 "효과 없음" 표시
+*/
+const MONSTERS = {
   virus:{
     low:[
-      {id:"vL1",name:"침투 포자",tier:"low",atk:7,hp:16,mark:false,effect:"효과 없음",img:VIRUS_IMAGES.low[0]},
-      {id:"vL2",name:"복제 세포",tier:"low",atk:6,hp:18,mark:false,effect:"효과 없음",img:VIRUS_IMAGES.low[1]},
-      {id:"vL3",name:"점액 분열체",tier:"low",atk:8,hp:14,mark:true, effect:"플레이어 공격 시 표식(2턴) 부여",img:VIRUS_IMAGES.low[2]},
+      {id:"vL1",name:"침투 포자",tier:"low",atk:7,hp:18,applyMark:true, bonusVsMarked:0, effect:"몬스터 공격 시 대상에게 표식(2턴) 부여", img:VIRUS_IMAGES.low[0]},
+      {id:"vL2",name:"복제 세포",tier:"low",atk:7,hp:20,applyMark:false,bonusVsMarked:0, effect:"", img:VIRUS_IMAGES.low[1]},
+      {id:"vL3",name:"점액 분열체",tier:"low",atk:8,hp:16,applyMark:false,bonusVsMarked:2, effect:"표식 있는 몬스터 공격 시 추가 피해 +2", img:VIRUS_IMAGES.low[2]},
     ],
     mid:[
-      {id:"vM1",name:"감염 확산체",tier:"mid",atk:6,hp:32,mark:false,effect:"효과 없음 (탱커)",img:VIRUS_IMAGES.mid[0]},
-      {id:"vM2",name:"변이 돌격체",tier:"mid",atk:11,hp:22,mark:false,effect:"효과 없음",img:VIRUS_IMAGES.mid[1]},
-      {id:"vM3",name:"은폐 잠복체",tier:"mid",atk:8,hp:28,mark:true, effect:"플레이어 공격 시 표식(2턴) 부여",img:VIRUS_IMAGES.mid[2]},
+      {id:"vM1",name:"감염 확산체",tier:"mid",atk:9,hp:32,applyMark:true, bonusVsMarked:0, effect:"몬스터 공격 시 대상에게 표식(2턴) 부여", img:VIRUS_IMAGES.mid[0]},
+      {id:"vM2",name:"변이 돌격체",tier:"mid",atk:12,hp:28,applyMark:false,bonusVsMarked:3, effect:"표식 있는 몬스터 공격 시 추가 피해 +3", img:VIRUS_IMAGES.mid[1]},
+      {id:"vM3",name:"은폐 잠복체",tier:"mid",atk:10,hp:30,applyMark:false,bonusVsMarked:0, effect:"", img:VIRUS_IMAGES.mid[2]},
     ],
     high:[
-      {id:"vH1",name:"숙주 지배체",tier:"high",atk:9,hp:48,mark:false,effect:"강제 공격 대상 / 받은 피해의 30% 반사",img:VIRUS_IMAGES.high[0]},
-      {id:"vH2",name:"신경 오염체",tier:"high",atk:14,hp:34,mark:true, effect:"플레이어 공격 시 표식(2턴) 부여",img:VIRUS_IMAGES.high[1]},
-      {id:"vH3",name:"재앙 군체핵",tier:"high",atk:10,hp:52,mark:false,effect:"효과 없음 (초고체력)",img:VIRUS_IMAGES.high[2]},
+      {id:"vH1",name:"숙주 지배체",tier:"high",atk:15,hp:48,applyMark:false,bonusVsMarked:0, effect:"강제 공격 대상 / 받은 피해의 30% 반사", img:VIRUS_IMAGES.high[0]},
+      {id:"vH2",name:"신경 오염체",tier:"high",atk:17,hp:40,applyMark:false,bonusVsMarked:5, effect:"표식 있는 몬스터 공격 시 추가 피해 +5", img:VIRUS_IMAGES.high[1]},
+      {id:"vH3",name:"재앙 군체핵",tier:"high",atk:15,hp:52,applyMark:false,bonusVsMarked:0, effect:"", img:VIRUS_IMAGES.high[2]},
     ],
   },
   vaccine:{
     low:[
-      {id:"cL1",name:"주사병",tier:"low",atk:6,hp:18,mark:false,effect:"효과 없음",img:VAX_IMAGES.low[0]},
-      {id:"cL2",name:"소독 요원",tier:"low",atk:7,hp:16,mark:false,effect:"효과 없음",img:VAX_IMAGES.low[1]},
-      {id:"cL3",name:"방역 드론",tier:"low",atk:5,hp:20,mark:false,effect:"효과 없음",img:VAX_IMAGES.low[2]},
+      {id:"cL1",name:"주사병",tier:"low",atk:6,hp:18, healOn:"none", healAmount:0, effect:"", img:VAX_IMAGES.low[0]},
+      {id:"cL2",name:"소독 요원",tier:"low",atk:5,hp:20, healOn:"none", healAmount:0, effect:"", img:VAX_IMAGES.low[1]},
+      {id:"cL3",name:"방역 드론",tier:"low",atk:7,hp:16, healOn:"end",  healAmount:2, effect:"턴 종료 시 아군 몬스터 중 HP 가장 낮은 1체 +2 회복", img:VAX_IMAGES.low[2]},
     ],
     mid:[
-      {id:"cM1",name:"항체 방패병",tier:"mid",atk:7,hp:30,mark:false,effect:"효과 없음(탱커)",img:VAX_IMAGES.mid[0]},
-      {id:"cM2",name:"면역 수호자",tier:"mid",atk:10,hp:24,mark:false,effect:"효과 없음",img:VAX_IMAGES.mid[1]},
-      {id:"cM3",name:"정화 공병",tier:"mid",atk:9,hp:26,mark:false,effect:"효과 없음",img:VAX_IMAGES.mid[2]},
+      {id:"cM1",name:"항체 방패병",tier:"mid",atk:8,hp:34, healOn:"hurt",  healAmount:2, effect:"아군 몬스터가 피해를 받을 때마다 그 몬스터 HP +2 회복", img:VAX_IMAGES.mid[0]},
+      {id:"cM2",name:"면역 수호자",tier:"mid",atk:10,hp:28,healOn:"attack",healAmount:3, effect:"몬스터 공격 시 아군 몬스터 1체 HP +3 회복", img:VAX_IMAGES.mid[1]},
+      {id:"cM3",name:"정화 공병",tier:"mid",atk:9,hp:30, healOn:"attack",healAmount:3, effect:"몬스터 공격 시 아군 몬스터 1체 HP +3 회복", img:VAX_IMAGES.mid[2]},
     ],
     high:[
-      {id:"cH1",name:"면역 사령관",tier:"high",atk:12,hp:44,mark:false,effect:"효과 없음",img:VAX_IMAGES.high[0]},
-      {id:"cH2",name:"백신 배양체",tier:"high",atk:9,hp:52,mark:false,effect:"효과 없음(최고 체력)",img:VAX_IMAGES.high[1]},
-      {id:"cH3",name:"항원 제압기",tier:"high",atk:14,hp:40,mark:false,effect:"효과 없음",img:VAX_IMAGES.high[2]},
+      {id:"cH1",name:"면역 사령관",tier:"high",atk:14,hp:48,healOn:"startAll",healAmount:3, effect:"턴 시작 시 아군 몬스터 전부 HP +3 회복", img:VAX_IMAGES.high[0]},
+      {id:"cH2",name:"백신 배양체",tier:"high",atk:13,hp:52,healOn:"endAll",  healAmount:2, effect:"턴 종료 시 아군 몬스터 전부 HP +2 회복", img:VAX_IMAGES.high[1]},
+      {id:"cH3",name:"항원 제압기",tier:"high",atk:17,hp:42,healOn:"none",    healAmount:0, effect:"", img:VAX_IMAGES.high[2]},
     ],
   }
 };
@@ -301,7 +335,7 @@ const tierLabel=(t)=>t==="low"?"하급":t==="mid"?"중급":"상급";
 let room=null, me=null, unsub=null;
 let lastData=null;
 
-/* ===== UI 선택 상태(이미지 클릭 조작) ===== */
+/* ===== UI 선택 상태 ===== */
 let mode="buy";          // buy | summon | attack
 let selHand=null;        // 손패 index
 let selAttacker=null;    // 내 필드 슬롯 index
@@ -333,24 +367,120 @@ const myData=(d)=>d.players?.[me]||null;
 const opData=(d)=>{const op=otherPid(d); return op?d.players[op]:null;};
 const aliveCount=(field)=>(field||[]).filter(x=>x && x.alive!==false).length;
 
-/* 플레이어 피감: (내 필드 몬스터 수×20%) + (백신이면 +20%), 최대 80% */
+/* 플레이어 피감: (내 필드 몬스터 수×20%) + (백신이면 +10%), 최대 80% */
 function playerDR(d,pid){
   const p=d.players?.[pid]; if(!p) return 0;
   const base=0.2*aliveCount(p.field);
-  const bonus=(p.faction==="vaccine")?0.2:0;
+  const bonus=(p.faction==="vaccine")?0.1:0;
   return clamp(base+bonus,0,0.8);
 }
-/* 표식(2턴): 표식 있으면 받는 플레이어 피해 +15% */
-const markBonus=(p)=>((p?.debuffs?.markTurns||0)>0 ? 0.15 : 0);
-
 const canAct=(d)=>d.status==="playing" && d.turnOwner===me;
 
-/* 몬스터 사망 시 해당 필드 칸은 “다음 자신의 턴까지” 잠김
-   => 죽은 쪽 플레이어의 해당 슬롯 lock=1 로 걸고, 그 플레이어의 턴 시작에 감소 */
+/* ===== 마이그레이션: 기존 방도 접속 즉시 최신 규칙 적용 ===== */
+function migrateRoomData(d){
+  let changed=false;
+
+  // maxTurn 기록(있든 없든 맞춰둠)
+  if(d.maxTurn !== MAX_TURN){
+    d.maxTurn = MAX_TURN;
+    changed=true;
+  }
+
+  // 기본 키 보정
+  d.lock = d.lock || {};
+  d.players = d.players || {};
+  if(typeof d.turn !== "number") { d.turn = 1; changed=true; }
+  if(typeof d.status !== "string") { d.status = "lobby"; changed=true; }
+
+  // 플레이어/필드 보정 + 표식/잠김 정규화
+  for(const pid of Object.keys(d.players)){
+    const p=d.players[pid];
+    if(!p) continue;
+
+    if(!Array.isArray(p.field) || p.field.length!==4){
+      p.field=[null,null,null,null];
+      changed=true;
+    }
+    if(!Array.isArray(p.hand)) { p.hand=[]; changed=true; }
+    if(typeof p.hp !== "number") { p.hp=100; changed=true; }
+    if(typeof p.mana !== "number") { p.mana=0; changed=true; }
+
+    for(let i=0;i<4;i++){
+      const m=p.field[i];
+      if(!m) continue;
+
+      // 표식 필드(몬스터에만)
+      if(typeof m.marked !== "boolean"){ m.marked=false; changed=true; }
+      if(typeof m.markTurns !== "number"){ m.markTurns=0; changed=true; }
+      if(m.markTurns>2){ m.markTurns=2; changed=true; }
+      if(m.markTurns<=0){ m.marked=false; m.markTurns=0; }
+
+      // 죽어있는 카드 정리 + 2턴 잠김 보장
+      if(typeof m.hp==="number" && m.hp<=0){
+        p.field[i]=null;
+        const k=`${pid}-${i}`;
+        if(!d.lock[k] || d.lock[k] < 2){
+          d.lock[k]=2;
+        }
+        changed=true;
+      }
+
+      // instId 없으면 부여(중복공격 체크용)
+      if(!m.instId){
+        m.instId = uid();
+        changed=true;
+      }
+
+      // alive 기본
+      if(typeof m.alive !== "boolean"){
+        m.alive = true;
+        changed=true;
+      }
+    }
+  }
+
+  // 턴 초과면 게임 종료로 정리
+  if(d.status==="playing" && d.turn > MAX_TURN){
+    d.status="end";
+    const ps=pids(d);
+    if(ps.length===2){
+      const hp0=d.players[ps[0]]?.hp ?? 0;
+      const hp1=d.players[ps[1]]?.hp ?? 0;
+      d.winner = (hp0===hp1) ? "draw" : (hp0>hp1 ? ps[0] : ps[1]);
+    }else{
+      d.winner="draw";
+    }
+    changed=true;
+  }
+
+  return changed;
+}
+
+/* 표식 턴 감소(전역): 턴 시작마다 모든 몬스터의 표식 턴 -1 */
+function tickMarks(d){
+  for(const pid of pids(d)){
+    const pl=d.players[pid];
+    for(let i=0;i<4;i++){
+      const m=pl.field?.[i];
+      if(m && m.marked){
+        m.markTurns = (m.markTurns||0) - 1;
+        if(m.markTurns<=0){
+          m.marked=false;
+          m.markTurns=0;
+        }
+      }
+    }
+  }
+}
+
+/* 턴 시작 처리 */
 function ensureTurnStart(d){
   d.turnState=d.turnState||{};
   const k=`${d.turn}-${d.turnOwner}`;
   if(d.turnState.startedKey===k) return;
+
+  // 표식 감소
+  tickMarks(d);
 
   const p=d.players?.[d.turnOwner];
   if(p){
@@ -358,16 +488,27 @@ function ensureTurnStart(d){
     d.actionLeft=2;
     d.attackedThisTurn=[];
     d.turnBuy=d.turnBuy||{};
-    p.debuffs=p.debuffs||{};
-    if(p.debuffs.markTurns) p.debuffs.markTurns=Math.max(0, p.debuffs.markTurns-1);
 
+    // 슬롯 잠김 감소(해당 플레이어의 턴 시작마다 감소)
     d.lock=d.lock||{};
     for(let s=0;s<4;s++){
       const lk=`${d.turnOwner}-${s}`;
       if(d.lock[lk] && d.lock[lk]>0) d.lock[lk]-=1;
       if(d.lock[lk]===0) delete d.lock[lk];
     }
+
+    // 백신: 턴 시작 전역 회복(면역 사령관)
+    if(p.faction==="vaccine"){
+      const hasStartAll = (p.field||[]).some(m=>m && m.healOn==="startAll");
+      if(hasStartAll){
+        for(let i=0;i<4;i++){
+          const m=p.field[i];
+          if(m) m.hp += 3;
+        }
+      }
+    }
   }
+
   d.turnState.startedKey=k;
 }
 
@@ -380,23 +521,44 @@ function findForcedTargetIndex(opPlayer){
   return null;
 }
 
-/* ===== UI render ===== */
+/* 결과 오버레이 */
+function showResult(d){
+  const box=$("result");
+  const title=$("resultTitle");
+  const sub=$("resultSub");
+
+  const w=d.winner;
+  const msg = (w==="draw") ? "무승부" : (w===me) ? "승리!" : "패배";
+  title.textContent = msg;
+
+  const my=myData(d);
+  const op=opData(d);
+  const myHp=my?.hp ?? 0;
+  const opHp=op?.hp ?? 0;
+  const t=Math.min(d.turn,MAX_TURN);
+  sub.textContent = `내 HP: ${myHp} · 상대 HP: ${opHp} · 턴: ${t}/${MAX_TURN}`;
+
+  box.classList.remove("hide");
+}
+$("restartBtn").onclick=()=>location.reload();
+
+/* ===== UI ===== */
 function cardNode(m, extra=""){
   const div=document.createElement("div");
   div.className="card";
+  const atkTxt = (typeof m.atk === "number") ? m.atk : "-";
   div.innerHTML=`
-    <img class="thumb" src="${(m.img&&m.img.trim())?m.img:fallbackImg}" alt=""
-         onerror="this.src='${fallbackImg}'">
+    <img class="thumb" src="${(m.img&&m.img.trim())?m.img:fallbackImg}" alt="">
     <div class="meta">
       <div class="name">${m.name}</div>
       <div class="stats">
-        <span class="chip2">⚔ ${m.atk}</span>
+        <span class="chip2">⚔ ${atkTxt}</span>
         <span class="chip2">❤ ${m.hp}</span>
-        ${m.mark? `<span class="chip2 mark">☣ 표식</span>` : ``}
-        <span class="chip2">${tierLabel(m.tier)}</span>
+        ${m.marked? `<span class="chip2 mark">☣ 표식</span>` : ``}
+        <span class="chip2">${tierLabel(m.tier || "mid")}</span>
         ${extra}
       </div>
-      <div class="fx">${m.effect||"효과 없음"}</div>
+      <div class="fx">${m.effect || "효과 없음"}</div>
     </div>
   `;
   return div;
@@ -407,11 +569,10 @@ function setMode(m){
   $("helpPill").textContent =
     m==="buy" ? "구매: 버튼 클릭(턴당 1회)" :
     m==="summon" ? "소환: 손패 클릭 → 내 빈 슬롯 클릭(행동 1)" :
-    "공격: 내 몬스터 클릭 → 상대(몬스터/플레이어) 클릭(턴당 2회, 중복공격 불가)";
+    "공격: 내 몬스터 클릭 → 상대(몬스터/PLAYER) 클릭(턴당 2회, 중복공격 불가)";
   toast(m==="buy"?"구매 모드":m==="summon"?"소환 모드":"공격 모드");
   renderUI(lastData);
 }
-
 function renderLobby(d){
   const ps=pids(d);
   const picked=ps.filter(pid=>!!d.players?.[pid]?.faction).length;
@@ -419,17 +580,37 @@ function renderLobby(d){
 
   $("lobbyStatus").textContent = `참가 ${ps.length}/2 · 진영 선택 ${picked}/2` + (isHost?" · 호스트":"");
   $("start").classList.toggle("hide", !isHost);
-
   $("lobbyInfo").textContent = room ? `ROOM:${room}  me:${me?.slice(0,8)}` : "";
 }
 
+/* 상대 필드: + PLAYER 슬롯(5번째) */
 function renderField(containerId, d, pid, isMine){
   const cont=$(containerId);
   cont.innerHTML="";
   const p=d.players?.[pid];
   const lock=d.lock||{};
+  const slots = isMine ? 4 : 5;
 
-  for(let i=0;i<4;i++){
+  for(let i=0;i<slots;i++){
+    // 상대 PLAYER 슬롯
+    if(!isMine && i===4){
+      const slot=document.createElement("div");
+      slot.className="slot";
+
+      const hdr=document.createElement("div");
+      hdr.className="slotHdr";
+      hdr.innerHTML=`<span class="badge">상대 PLAYER</span>`;
+      slot.appendChild(hdr);
+
+      const hp = d.players?.[pid]?.hp ?? 0;
+      const fakePlayer = {name:"상대 플레이어", atk:"-", hp, tier:"high", marked:false, effect:"클릭하면 플레이어를 공격", img:""};
+      slot.appendChild(cardNode(fakePlayer));
+
+      slot.addEventListener("click", ()=>onSlotClick(false, 4));
+      cont.appendChild(slot);
+      continue;
+    }
+
     const lk=`${pid}-${i}`;
     const lockedTurns=lock[lk]||0;
     const m=p?.field?.[i]||null;
@@ -472,7 +653,7 @@ function renderHand(d){
   cont.innerHTML="";
   const my=myData(d);
   const hand=my?.hand||[];
-  $("handCount").textContent=`${hand.length}/10`;
+  $("handCount").textContent=`${hand.length}`; // ✅ 손패 제한 없음
 
   hand.forEach((c, idx)=>{
     const wrap=document.createElement("div");
@@ -496,9 +677,7 @@ function renderHand(d){
 function renderUI(d){
   if(!d) return;
   lastData=d;
-  $("state").textContent = JSON.stringify(d,null,2);
 
-  // view switch
   $("lobby").classList.toggle("hide", d.status!=="lobby");
   $("game").classList.toggle("hide", d.status==="lobby");
 
@@ -507,7 +686,7 @@ function renderUI(d){
   const my=myData(d), op=opData(d), opPid=otherPid(d);
 
   $("roomPill").textContent="ROOM: "+(room||"-");
-  $("turnPill").textContent=`TURN ${d.turn}/${MAX_TURN} · ${(d.turnOwner===me)?"내 턴":"상대 턴"}`;
+  $("turnPill").textContent=`TURN ${Math.min(d.turn,MAX_TURN)}/${MAX_TURN} · ${(d.turnOwner===me)?"내 턴":"상대 턴"}`;
   $("youPill").textContent = my?.faction==="virus" ? "YOU: 🦠" : "YOU: 💉";
 
   const hp=my?.hp ?? 0;
@@ -521,8 +700,8 @@ function renderUI(d){
   $("atkPill").textContent="ATK "+((d.attackedThisTurn?.length)||0)+"/2";
 
   const dr=playerDR(d, me);
-  $("myInfo").textContent = `피감:${Math.round(dr*100)}% · 내표식:${my?.debuffs?.markTurns||0}`;
-  $("opInfo").textContent = `상대표식:${op?.debuffs?.markTurns||0}`;
+  $("myInfo").textContent = `피감:${Math.round(dr*100)}%`;
+  $("opInfo").textContent = `상대HP:${op?.hp ?? 0}`;
 
   const enabled=canAct(d);
   $("buy").disabled=!enabled;
@@ -536,6 +715,29 @@ function renderUI(d){
   renderHand(d);
 }
 
+/* ===== 회복 헬퍼(백신) ===== */
+function healLowestOne(player, amount){
+  let idx=-1, min=Infinity;
+  for(let i=0;i<4;i++){
+    const m=player.field[i];
+    if(m && m.hp < min){ min=m.hp; idx=i; }
+  }
+  if(idx>=0) player.field[idx].hp += amount;
+}
+function healAll(player, amount){
+  for(let i=0;i<4;i++){
+    const m=player.field[i];
+    if(m) m.hp += amount;
+  }
+}
+function healRandomOne(player, amount){
+  const list=[];
+  for(let i=0;i<4;i++) if(player.field[i]) list.push(i);
+  if(!list.length) return;
+  const pick=list[Math.floor(Math.random()*list.length)];
+  player.field[pick].hp += amount;
+}
+
 /* ===== 클릭 조작 로직 ===== */
 async function onSlotClick(isMine, idx){
   const {ref,data}=await loadRoom();
@@ -547,10 +749,9 @@ async function onSlotClick(isMine, idx){
   const op=opPid?data.players[opPid]:null;
   if(!my) return;
 
-  // 구매 모드: 슬롯 클릭은 무시
   if(mode==="buy") return;
 
-  // 소환: 손패 클릭 → 내 빈 슬롯 클릭
+  // 소환
   if(mode==="summon"){
     if(!isMine) return toast("내 슬롯에만 소환");
     if(selHand==null) return toast("손패 먼저 선택");
@@ -572,7 +773,7 @@ async function onSlotClick(isMine, idx){
     return;
   }
 
-  // 공격: 내 몬스터 클릭 → 상대 몬스터 or 상대 플레이어(상대필드 제목 클릭 대신: 상대 빈칸 클릭 시 플레이어로 처리)
+  // 공격
   if(mode==="attack"){
     data.attackedThisTurn=data.attackedThisTurn||[];
     if(data.attackedThisTurn.length>=2) return toast("공격 2회 끝");
@@ -587,7 +788,6 @@ async function onSlotClick(isMine, idx){
       return;
     }
 
-    // 상대 쪽 클릭
     if(selAttacker==null) return toast("내 몬스터 먼저 선택");
     if(!op) return toast("상대 없음");
 
@@ -595,28 +795,11 @@ async function onSlotClick(isMine, idx){
     if(!attacker) return toast("공격자 사라짐");
     if(data.attackedThisTurn.includes(attacker.instId)) return toast("중복 공격");
 
-    // 강제 공격 대상(숙주 지배체)
-    const mustIdx=findForcedTargetIndex(op);
-    if(mustIdx!=null && mustIdx!==idx){
-      return toast("숙주 지배체를 먼저 공격!");
-    }
-
-    const target=op.field[idx];
-
-    // 상대 슬롯이 비었으면 → 플레이어 공격으로 처리(이미지 조작 유지)
-    if(!target){
-      // 플레이어 피해 계산
+    // ✅ 상대 PLAYER 슬롯
+    if(idx===4){
       const dr=playerDR(data, opPid);
-      const bonus=(my.faction==="virus" && attacker.mark) ? markBonus(op) : 0;
-      const dmg=Math.max(1, Math.floor(attacker.atk*(1+bonus)*(1-dr)));
-
+      const dmg=Math.max(1, Math.floor(attacker.atk*(1-dr)));
       op.hp -= dmg;
-
-      // 표식 부여(바이러스 mark=true)
-      if(my.faction==="virus" && attacker.mark){
-        op.debuffs=op.debuffs||{};
-        op.debuffs.markTurns=2;
-      }
 
       data.players[opPid]=op;
       data.attackedThisTurn.push(attacker.instId);
@@ -632,17 +815,51 @@ async function onSlotClick(isMine, idx){
       return;
     }
 
-    // 몬스터 공격: 대상 hp 감소
-    target.hp -= attacker.atk;
+    // 강제 공격 대상
+    const mustIdx=findForcedTargetIndex(op);
+    if(mustIdx!=null && mustIdx!==idx){
+      return toast("숙주 지배체를 먼저 공격!");
+    }
+
+    const target=op.field[idx];
+    if(!target) return toast("대상 없음");
+
+    // ✅ 데미지 계산(표식 추뎀)
+    let dmg = attacker.atk;
+    if(attacker.bonusVsMarked && target.marked) dmg += attacker.bonusVsMarked;
+
+    // 피해 적용
+    target.hp -= dmg;
+
+    // ✅ 백신(공격 시) 회복: 랜덤 아군 1체
+    if(my.faction==="vaccine" && attacker.healOn==="attack" && (attacker.healAmount||0)>0){
+      healRandomOne(my, attacker.healAmount||0);
+    }
+
+    // ✅ 바이러스(몬스터 공격 시) 표식 부여
+    if(my.faction==="virus" && attacker.applyMark){
+      target.marked=true;
+      target.markTurns=2;
+    }
+
+    // ✅ 백신(피해 받을 때) 회복: 방패병(hurt)
+    // 상대(op)가 백신이면, 이번에 피해 받은 target(=op의 몬스터)을 회복
+    if(op.faction==="vaccine"){
+      const shields = (op.field||[]).filter(m=>m && m.healOn==="hurt" && (m.healAmount||0)>0).length;
+      if(shields>0 && target.hp>0){
+        target.hp += shields * 2; // 방패병 1장당 +2
+      }
+    }
 
     // 반사(숙주 지배체)
     if(target.id==="vH1"){
-      const reflect=Math.floor(attacker.atk*0.3);
+      const reflect=Math.floor(dmg*0.3);
       attacker.hp -= reflect;
+
       if(attacker.hp<=0){
         my.field[selAttacker]=null;
         data.lock=data.lock||{};
-        data.lock[`${me}-${selAttacker}`]=1;
+        data.lock[`${me}-${selAttacker}`]=2; // ✅ 2턴 잠김
         toast("반사로 공격자 사망!");
       }else{
         my.field[selAttacker]=attacker;
@@ -651,19 +868,25 @@ async function onSlotClick(isMine, idx){
       my.field[selAttacker]=attacker;
     }
 
+    // 대상 사망 처리
     if(target.hp<=0){
       op.field[idx]=null;
       data.lock=data.lock||{};
-      data.lock[`${opPid}-${idx}`]=1;
+      data.lock[`${opPid}-${idx}`]=2; // ✅ 2턴 잠김
       toast("처치!");
     }else{
       op.field[idx]=target;
-      toast("타격!");
+      toast(`타격! (-${dmg})`);
     }
 
     data.players[me]=my;
     data.players[opPid]=op;
     data.attackedThisTurn.push(attacker.instId);
+
+    if(op.hp<=0){
+      data.status="end";
+      data.winner=me;
+    }
 
     await setDoc(ref,data);
     selAttacker=null;
@@ -671,7 +894,19 @@ async function onSlotClick(isMine, idx){
   }
 }
 
-/* ===== 버튼 액션 ===== */
+/* ===== 카드 생성/구매 ===== */
+function makeCard(faction, tier){
+  const pool = MONSTERS[faction][tier];
+  const base = pool[Math.floor(Math.random()*pool.length)];
+  const card = structuredClone(base);
+  card.cost = COST[tier];
+  card.instId = uid();
+  card.alive = true;
+  card.marked = false;
+  card.markTurns = 0;
+  return card;
+}
+
 async function buyCard(){
   const {ref,data}=await loadRoom();
   if(!canAct(data)) return toast("상대 턴");
@@ -686,14 +921,10 @@ async function buyCard(){
   const cost=COST[tier];
   if((my.mana||0)<cost) return toast("마나 부족");
 
-  const pool=POOL[my.faction][tier];
-  const card={...pool[Math.floor(Math.random()*pool.length)]};
-  card.cost=cost;
-  card.instId=uid();
+  const card = makeCard(my.faction, tier);
 
   my.mana-=cost;
-  my.hand.push(card);
-  if(my.hand.length>10) my.hand=my.hand.slice(-10);
+  my.hand.push(card); // ✅ 손패 제한 삭제
 
   data.players[me]=my;
   data.turnBuy[key]=true;
@@ -702,6 +933,7 @@ async function buyCard(){
   toast("구매!");
 }
 
+/* ===== 턴 종료(20턴 끝나면 종료) ===== */
 async function endTurn(){
   const {ref,data}=await loadRoom();
   if(!canAct(data)) return toast("상대 턴");
@@ -709,15 +941,30 @@ async function endTurn(){
   const opPid=otherPid(data);
   if(!opPid) return toast("상대 없음");
 
+  // ✅ 턴 종료 시 백신 회복(내 턴 끝에서 적용)
+  const my=myData(data);
+  if(my?.faction==="vaccine"){
+    // endAll(백신 배양체)
+    const hasEndAll = (my.field||[]).some(m=>m && m.healOn==="endAll");
+    if(hasEndAll) healAll(my, 2);
+
+    // end(방역 드론) - 여러 장이면 여러 번
+    const drones = (my.field||[]).filter(m=>m && m.healOn==="end" && (m.healAmount||0)>0);
+    for(const d0 of drones) healLowestOne(my, d0.healAmount||2);
+
+    data.players[me]=my;
+  }
+
+  // 다음 턴으로 넘기기
   data.turn += 1;
   data.turnOwner = opPid;
 
-  // 15턴 종료 판정
+  // ✅ 21턴 진입이면 게임 종료(= 20턴까지 진행)
   if(data.turn > MAX_TURN){
     data.status="end";
     const ps=pids(data);
-    const hp0=data.players[ps[0]]?.hp??0;
-    const hp1=data.players[ps[1]]?.hp??0;
+    const hp0=data.players[ps[0]]?.hp ?? 0;
+    const hp1=data.players[ps[1]]?.hp ?? 0;
     data.winner = (hp0===hp1) ? "draw" : (hp0>hp1 ? ps[0] : ps[1]);
     await setDoc(ref,data);
     toast("게임 종료");
@@ -737,6 +984,7 @@ $("create").onclick=async ()=>{
   await setDoc(doc(db,"rooms",room),{
     host: me,
     status:"lobby",
+    maxTurn: MAX_TURN,
     turn:1,
     turnOwner:null,
     actionLeft:2,
@@ -770,8 +1018,7 @@ async function chooseFaction(faction){
     hp:100,
     mana:0,
     field:[null,null,null,null],
-    hand:[],
-    debuffs:{markTurns:0}
+    hand:[]
   };
   await setDoc(ref,data);
   toast(faction==="virus"?"🦠 선택":"💉 선택");
@@ -794,12 +1041,11 @@ $("start").onclick=async ()=>{
 
   await setDoc(ref,data);
 
-  // 게임 입장 & 기본 모드
   setMode("buy");
   toast("게임 시작!");
 };
 
-/* ===== 모드/버튼 연결 ===== */
+/* ===== 모드/버튼 ===== */
 $("modeBuy").onclick=()=>setMode("buy");
 $("modeSummon").onclick=()=>setMode("summon");
 $("modeAttack").onclick=()=>setMode("attack");
@@ -818,17 +1064,20 @@ function listen(){
     }
     const {ref,data}=await loadRoom();
 
-    // playing이면 턴 시작 보정(동기화)
+    // ✅ 기존 방도 최신 규칙으로 자동 마이그레이션
+    if(migrateRoomData(data)){
+      await setDoc(ref,data);
+    }
+
+    // playing이면 턴 시작 보정
     if(data.status==="playing"){
       ensureTurnStart(data);
       await setDoc(ref,data);
     }
 
-    // end 처리(토스트만)
+    // end 처리
     if(data.status==="end"){
-      const w=data.winner;
-      const msg = (w==="draw") ? "무승부" : (w===me) ? "승리!" : "패배";
-      toast("게임 종료: "+msg);
+      showResult(data);
     }
 
     renderUI(data);
@@ -840,4 +1089,3 @@ function listen(){
 </script>
 </body>
 </html>
-
