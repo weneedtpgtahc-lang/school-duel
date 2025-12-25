@@ -1,4 +1,5 @@
 <!doctype html>
+<div id="virusCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;"></div>
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
@@ -856,6 +857,64 @@ imgs.forEach(src=>{
   img.style.border="2px solid #333";
   t.appendChild(img);
 });
+</script>
+<script type="module">
+  import { virusMonsters } from "./assets/data/monsters.js";
+
+  const grid = document.getElementById("virusCards");
+
+  function cardHTML(m){
+    const atk = (m.atk === null || m.atk === undefined) ? "?" : m.atk;
+    const hp  = (m.hp  === null || m.hp  === undefined) ? "?" : m.hp;
+    const effect = (m.effect && m.effect.trim()) ? m.effect : "효과 미정";
+
+    return `
+      <div style="
+        background:#fff;border-radius:16px;border:3px solid rgba(0,0,0,.18);
+        box-shadow:0 10px 30px rgba(0,0,0,.18);overflow:hidden;cursor:pointer;">
+        <div style="height:150px;display:flex;align-items:center;justify-content:center;
+          background:linear-gradient(180deg,#f7fbff,#e6f4ff);">
+          <img src="${m.image}" alt="${m.name}" style="max-width:92%;max-height:92%;object-fit:contain"
+            onerror="this.style.display='none'; this.parentNode.textContent='(이미지 없음)';">
+        </div>
+        <div style="padding:10px 12px 12px;">
+          <div style="font-weight:1000;">${m.name}</div>
+          <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="padding:4px 8px;border-radius:999px;background:#eef2ff;border:1px solid #c7d2fe;font-weight:900;">
+              ⚔ ${atk}
+            </span>
+            <span style="padding:4px 8px;border-radius:999px;background:#ecfeff;border:1px solid #a5f3fc;font-weight:900;">
+              ❤ ${hp}
+            </span>
+            <span style="padding:4px 8px;border-radius:999px;background:#f3f4f6;border:1px solid #d1d5db;font-weight:900;">
+              ${m.tier.toUpperCase()}
+            </span>
+          </div>
+          <div style="margin-top:8px;font-size:12px;opacity:.75;line-height:1.35;">${effect}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 렌더
+  grid.innerHTML = virusMonsters.map(cardHTML).join("");
+
+  // 클릭 선택 표시(선택 UX)
+  let selectedId = null;
+  grid.querySelectorAll(":scope > div").forEach((el, idx)=>{
+    el.addEventListener("click", ()=>{
+      const id = virusMonsters[idx].id;
+      selectedId = id;
+
+      grid.querySelectorAll(":scope > div").forEach(x=>{
+        x.style.outline = "none";
+        x.style.borderColor = "rgba(0,0,0,.18)";
+      });
+      el.style.outline = "5px solid rgba(255,45,45,.25)";
+      el.style.borderColor = "#ff2d2d";
+      console.log("selected:", selectedId);
+    });
+  });
 </script>
 </body>
 </html>
