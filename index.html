@@ -831,5 +831,31 @@ function listen(){
   });
 }
 </script>
+<div id="test" style="display:flex;gap:12px;flex-wrap:wrap"></div>
+
+<script>
+const imgs = [
+  "assets/virus/virus_low_1.png",
+  "assets/virus/virus_low_2.png",
+  "assets/virus/virus_low_3.png",
+  "assets/virus/virus_mid_1.png",
+  "assets/virus/virus_mid_2.png",
+  "assets/virus/virus_mid_3.png",
+  "assets/virus/virus_high_1.png",
+  "assets/virus/virus_high_2.png",
+  "assets/virus/virus_high_3.png",
+];
+
+const t = document.getElementById("test");
+imgs.forEach(src=>{
+  const img=document.createElement("img");
+  img.src=src;
+  img.style.width="120px";
+  img.style.height="120px";
+  img.style.objectFit="contain";
+  img.style.border="2px solid #333";
+  t.appendChild(img);
+});
+</script>
 </body>
 </html>
