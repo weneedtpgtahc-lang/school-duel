@@ -1,7 +1,7 @@
 // assets/data/monsters.js
 // 바이러스 몬스터 데이터 (이미지 확정, 스탯/효과 미확정)
 
-export const virusMonsters = [
+const virusMonsters = [
   // ===== 하급 =====
   {
     id: "virus_low_1",
